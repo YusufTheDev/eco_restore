@@ -2,10 +2,19 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\ClaimItemRepository;
 use Doctrine\ORM\Mapping as ORM;
 
+use Symfony\Component\Validator\Constraints as Assert;
+
 #[ORM\Entity(repositoryClass: ClaimItemRepository::class)]
+#[ApiResource(graphQlOperations: [
+    new Query(name: 'item_query'),
+    new QueryCollection(name: 'collection_query'),
+])]
 class ClaimItem
 {
     #[ORM\Id]
@@ -14,6 +23,7 @@ class ClaimItem
     private ?int $id = null;
 
     #[ORM\Column]
+    #[Assert\GreaterThan(0)]
     private ?float $quantityUsed = null;
 
     #[ORM\ManyToOne(inversedBy: 'claimItems')]
@@ -37,7 +47,6 @@ class ClaimItem
     public function setQuantityUsed(float $quantityUsed): static
     {
         $this->quantityUsed = $quantityUsed;
-
         return $this;
     }
 
@@ -49,7 +58,6 @@ class ClaimItem
     public function setMaterial(?Material $material): static
     {
         $this->material = $material;
-
         return $this;
     }
 
@@ -61,7 +69,6 @@ class ClaimItem
     public function setClaim(?Claim $claim): static
     {
         $this->claim = $claim;
-
         return $this;
     }
 }

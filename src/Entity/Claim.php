@@ -2,12 +2,28 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
+use ApiPlatform\Doctrine\Orm\Filter\NumericFilter;
 use App\Repository\ClaimRepository;
+use App\State\ClaimStateProvider;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ClaimRepository::class)]
+#[ApiResource(
+    provider: ClaimStateProvider::class,
+    graphQlOperations: [
+        new Query(name: 'item_query'),
+        new QueryCollection(name: 'collection_query'),
+    ]
+)]
+// This enables the filtering by score in your GraphQL collection queries
+#[ApiFilter(NumericFilter::class, properties: ['totalCarbonScore'])]
 class Claim
 {
     #[ORM\Id]
@@ -35,6 +51,20 @@ class Claim
         $this->claimItems = new ArrayCollection();
     }
 
+    /**
+     * NEW FOR DAY 3: Virtual field for Dashboard status.
+     * Exposes 'carbonStatus' to GraphQL.
+     */
+    #[ApiProperty(readable: true)]
+    public function getCarbonStatus(): string
+    {
+        if ($this->totalCarbonScore === null || $this->totalCarbonScore === 0.0) {
+            return 'PENDING';
+        }
+
+        return $this->totalCarbonScore > 50 ? 'HIGH_ALERT' : 'ECO_FRIENDLY';
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -48,7 +78,6 @@ class Claim
     public function setClaimNumber(string $claimNumber): static
     {
         $this->claimNumber = $claimNumber;
-
         return $this;
     }
 
@@ -60,7 +89,6 @@ class Claim
     public function setPolicyHolder(string $policyHolder): static
     {
         $this->policyHolder = $policyHolder;
-
         return $this;
     }
 
@@ -72,7 +100,6 @@ class Claim
     public function setTotalCarbonScore(?float $totalCarbonScore): static
     {
         $this->totalCarbonScore = $totalCarbonScore;
-
         return $this;
     }
 
@@ -90,19 +117,16 @@ class Claim
             $this->claimItems->add($claimItem);
             $claimItem->setClaim($this);
         }
-
         return $this;
     }
 
     public function removeClaimItem(ClaimItem $claimItem): static
     {
         if ($this->claimItems->removeElement($claimItem)) {
-            // set the owning side to null (unless already changed)
             if ($claimItem->getClaim() === $this) {
                 $claimItem->setClaim(null);
             }
         }
-
         return $this;
     }
 }

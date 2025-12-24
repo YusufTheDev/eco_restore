@@ -1,0 +1,12 @@
+api_platform:
+    title: 'Eco-Restore API'
+    version: 1.0.0
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+    # Add this section below:
+    graphql:
+        enabled: true
+        graphiql:
+            enabled: true # This gives you the visual editor in the browser
