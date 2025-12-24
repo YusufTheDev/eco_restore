@@ -8,6 +8,8 @@ use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\ClaimItemRepository;
 use Doctrine\ORM\Mapping as ORM;
 
+use Symfony\Component\Validator\Constraints as Assert;
+
 #[ORM\Entity(repositoryClass: ClaimItemRepository::class)]
 #[ApiResource(graphQlOperations: [
     new Query(name: 'item_query'),
@@ -21,6 +23,7 @@ class ClaimItem
     private ?int $id = null;
 
     #[ORM\Column]
+    #[Assert\GreaterThan(0)]
     private ?float $quantityUsed = null;
 
     #[ORM\ManyToOne(inversedBy: 'claimItems')]

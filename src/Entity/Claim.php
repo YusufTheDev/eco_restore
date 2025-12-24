@@ -2,9 +2,12 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GraphQl\Query;
 use ApiPlatform\Metadata\GraphQl\QueryCollection;
+use ApiPlatform\Doctrine\Orm\Filter\NumericFilter;
 use App\Repository\ClaimRepository;
 use App\State\ClaimStateProvider;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -13,13 +16,14 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ClaimRepository::class)]
 #[ApiResource(
-    // MOVE PROVIDER HERE: This makes it the default for all operations
     provider: ClaimStateProvider::class,
     graphQlOperations: [
         new Query(name: 'item_query'),
         new QueryCollection(name: 'collection_query'),
     ]
 )]
+// This enables the filtering by score in your GraphQL collection queries
+#[ApiFilter(NumericFilter::class, properties: ['totalCarbonScore'])]
 class Claim
 {
     #[ORM\Id]
@@ -45,6 +49,20 @@ class Claim
     public function __construct()
     {
         $this->claimItems = new ArrayCollection();
+    }
+
+    /**
+     * NEW FOR DAY 3: Virtual field for Dashboard status.
+     * Exposes 'carbonStatus' to GraphQL.
+     */
+    #[ApiProperty(readable: true)]
+    public function getCarbonStatus(): string
+    {
+        if ($this->totalCarbonScore === null || $this->totalCarbonScore === 0.0) {
+            return 'PENDING';
+        }
+
+        return $this->totalCarbonScore > 50 ? 'HIGH_ALERT' : 'ECO_FRIENDLY';
     }
 
     public function getId(): ?int

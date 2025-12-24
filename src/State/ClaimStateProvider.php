@@ -5,30 +5,47 @@ namespace App\State;
 use App\Entity\Claim;
 use App\Service\EmissionCalculator;
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\CollectionOperationInterface;
 use ApiPlatform\State\ProviderInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 class ClaimStateProvider implements ProviderInterface
 {
     public function __construct(
-            // We inject the original "built-in" provider to get the data from the DB first
+            // Inject the built-in Item Provider
         #[Autowire(service: 'api_platform.doctrine.orm.state.item_provider')]
         private ProviderInterface $itemProvider,
+
+            // Inject the built-in Collection Provider
+        #[Autowire(service: 'api_platform.doctrine.orm.state.collection_provider')]
+        private ProviderInterface $collectionProvider,
+
         private EmissionCalculator $calculator
     ) {
     }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
     {
-        // 1. Get the Claim from the database
-        $claim = $this->itemProvider->provide($operation, $uriVariables, $context);
+        // 1. Logic Switch: Are we looking for one claim or all of them?
+        $provider = $operation instanceof CollectionOperationInterface
+            ? $this->collectionProvider
+            : $this->itemProvider;
 
-        if ($claim instanceof Claim) {
-            // 2. Use Yusuf's calculator to get the real-time score
-            $score = $this->calculator->calculateTotalCarbon($claim);
-            $claim->setTotalCarbonScore($score);
+        $data = $provider->provide($operation, $uriVariables, $context);
+
+        // 2. Calculation Logic
+        if ($data instanceof Claim) {
+            // Process a single item
+            $this->calculator->calculateAndSave($data);
+        } elseif (is_iterable($data)) {
+            // Process every item in the list
+            foreach ($data as $claim) {
+                if ($claim instanceof Claim) {
+                    $this->calculator->calculateAndSave($claim);
+                }
+            }
         }
 
-        return $claim;
+        return $data;
     }
 }
