@@ -2,12 +2,24 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\ClaimRepository;
+use App\State\ClaimStateProvider;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ClaimRepository::class)]
+#[ApiResource(
+    // MOVE PROVIDER HERE: This makes it the default for all operations
+    provider: ClaimStateProvider::class,
+    graphQlOperations: [
+        new Query(name: 'item_query'),
+        new QueryCollection(name: 'collection_query'),
+    ]
+)]
 class Claim
 {
     #[ORM\Id]
@@ -48,7 +60,6 @@ class Claim
     public function setClaimNumber(string $claimNumber): static
     {
         $this->claimNumber = $claimNumber;
-
         return $this;
     }
 
@@ -60,7 +71,6 @@ class Claim
     public function setPolicyHolder(string $policyHolder): static
     {
         $this->policyHolder = $policyHolder;
-
         return $this;
     }
 
@@ -72,7 +82,6 @@ class Claim
     public function setTotalCarbonScore(?float $totalCarbonScore): static
     {
         $this->totalCarbonScore = $totalCarbonScore;
-
         return $this;
     }
 
@@ -90,19 +99,16 @@ class Claim
             $this->claimItems->add($claimItem);
             $claimItem->setClaim($this);
         }
-
         return $this;
     }
 
     public function removeClaimItem(ClaimItem $claimItem): static
     {
         if ($this->claimItems->removeElement($claimItem)) {
-            // set the owning side to null (unless already changed)
             if ($claimItem->getClaim() === $this) {
                 $claimItem->setClaim(null);
             }
         }
-
         return $this;
     }
 }

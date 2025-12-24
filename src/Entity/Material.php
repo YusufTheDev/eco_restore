@@ -2,12 +2,19 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\MaterialRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: MaterialRepository::class)]
+#[ApiResource(graphQlOperations: [
+    new Query(name: 'item_query'),
+    new QueryCollection(name: 'collection_query'),
+])]
 class Material
 {
     #[ORM\Id]
@@ -48,7 +55,6 @@ class Material
     public function setName(string $name): static
     {
         $this->name = $name;
-
         return $this;
     }
 
@@ -60,7 +66,6 @@ class Material
     public function setCarbonFootprintPerUnit(float $carbonFootprintPerUnit): static
     {
         $this->carbonFootprintPerUnit = $carbonFootprintPerUnit;
-
         return $this;
     }
 
@@ -72,7 +77,6 @@ class Material
     public function setCategory(string $category): static
     {
         $this->category = $category;
-
         return $this;
     }
 
@@ -90,19 +94,16 @@ class Material
             $this->claimItems->add($claimItem);
             $claimItem->setMaterial($this);
         }
-
         return $this;
     }
 
     public function removeClaimItem(ClaimItem $claimItem): static
     {
         if ($this->claimItems->removeElement($claimItem)) {
-            // set the owning side to null (unless already changed)
             if ($claimItem->getMaterial() === $this) {
                 $claimItem->setMaterial(null);
             }
         }
-
         return $this;
     }
 }
