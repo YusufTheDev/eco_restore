@@ -34,6 +34,12 @@ class ClaimItem
     #[ORM\JoinColumn(nullable: false)]
     private ?Claim $claim = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?float $transportDistance = null; // in km
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $transportMethod = null; // truck, rail, ship
+
     public function getId(): ?int
     {
         return $this->id;
@@ -69,6 +75,28 @@ class ClaimItem
     public function setClaim(?Claim $claim): static
     {
         $this->claim = $claim;
+        return $this;
+    }
+
+    public function getTransportDistance(): ?float
+    {
+        return $this->transportDistance;
+    }
+
+    public function setTransportDistance(?float $transportDistance): static
+    {
+        $this->transportDistance = $transportDistance;
+        return $this;
+    }
+
+    public function getTransportMethod(): ?string
+    {
+        return $this->transportMethod;
+    }
+
+    public function setTransportMethod(?string $transportMethod): static
+    {
+        $this->transportMethod = $transportMethod;
         return $this;
     }
 }

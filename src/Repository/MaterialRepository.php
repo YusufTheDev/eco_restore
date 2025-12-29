@@ -16,28 +16,18 @@ class MaterialRepository extends ServiceEntityRepository
         parent::__construct($registry, Material::class);
     }
 
-    //    /**
-    //     * @return Material[] Returns an array of Material objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('m.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
-
-    //    public function findOneBySomeField($value): ?Material
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    public function findBetterAlternative(string $category, float $currentFactor, string $unit): ?Material
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.category = :category')
+            ->andWhere('m.unit = :unit') // Important: Must match unit (kg vs m3)
+            ->andWhere('m.carbonFootprintPerUnit < :currentFactor')
+            ->setParameter('category', $category)
+            ->setParameter('unit', $unit)
+            ->setParameter('currentFactor', $currentFactor)
+            ->orderBy('m.carbonFootprintPerUnit', 'ASC') // Find the BEST one
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

@@ -31,6 +31,18 @@ class Material
     #[ORM\Column(length: 100)]
     private ?string $category = null;
 
+    #[ORM\Column(length: 50)]
+    private ?string $unit = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $density = null; // kg/unit
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $sourceDate = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $industryAverageFactor = null;
+
     /**
      * @var Collection<int, ClaimItem>
      */
@@ -80,6 +92,17 @@ class Material
         return $this;
     }
 
+    public function getUnit(): ?string
+    {
+        return $this->unit;
+    }
+
+    public function setUnit(string $unit): static
+    {
+        $this->unit = $unit;
+        return $this;
+    }
+
     /**
      * @return Collection<int, ClaimItem>
      */
@@ -100,10 +123,45 @@ class Material
     public function removeClaimItem(ClaimItem $claimItem): static
     {
         if ($this->claimItems->removeElement($claimItem)) {
+            // set the owning side to null (unless already changed)
             if ($claimItem->getMaterial() === $this) {
                 $claimItem->setMaterial(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getDensity(): ?float
+    {
+        return $this->density;
+    }
+
+    public function setDensity(?float $density): static
+    {
+        $this->density = $density;
+        return $this;
+    }
+
+    public function getSourceDate(): ?\DateTimeInterface
+    {
+        return $this->sourceDate;
+    }
+
+    public function setSourceDate(?\DateTimeInterface $sourceDate): static
+    {
+        $this->sourceDate = $sourceDate;
+        return $this;
+    }
+
+    public function getIndustryAverageFactor(): ?float
+    {
+        return $this->industryAverageFactor;
+    }
+
+    public function setIndustryAverageFactor(?float $industryAverageFactor): static
+    {
+        $this->industryAverageFactor = $industryAverageFactor;
         return $this;
     }
 }

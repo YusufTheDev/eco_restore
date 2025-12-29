@@ -1,0 +1,278 @@
+/* Dashboard Premium Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+body {
+    background-color: #f8fafc;
+    margin: 0;
+}
+
+.dashboard-container {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #1e293b;
+    min-height: 100vh;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.main-card {
+    background: white;
+    width: 100%;
+    max-width: 1200px;
+    border-radius: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    padding: 40px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.btn-download {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    padding: 10px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-download:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 60px;
+    padding: 40px;
+}
+
+.metric-box {
+    margin-bottom: 40px;
+}
+
+.metric-label {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #64748b;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.metric-value {
+    font-size: 72px;
+    font-weight: 900;
+    color: #059669;
+    line-height: 1;
+    letter-spacing: -2px;
+}
+
+.entry-form {
+    background: #f1f5f9;
+    padding: 30px;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #475569;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    font-size: 15px;
+    transition: all 0.2s;
+    box-sizing: border-box;
+    display: block;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}
+
+.search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+    margin-top: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+}
+
+.search-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.1s;
+}
+
+.search-item:hover {
+    background: #f0fdf4;
+}
+
+.search-item:last-child {
+    border-bottom: none;
+}
+
+.item-name {
+    font-weight: 600;
+    color: #334155;
+}
+
+.item-meta {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.btn-add {
+    background: #059669;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 10px;
+    width: 100%;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-add:hover {
+    background: #047857;
+}
+
+.btn-add:disabled {
+    background: #cbd5e1;
+    cursor: not-allowed;
+}
+
+.staged-list h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: #334155;
+}
+
+.staged-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #facc15;
+    /* Yellow accent for staged items */
+}
+
+.btn-submit {
+    background: #1e293b;
+    color: white;
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 20px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    font-weight: 600;
+    color: #059669;
+}
+
+/* Animations (Vue Transition) */
+.list-enter-active,
+.list-leave-active {
+    transition: all 0.4s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+    opacity: 0;
+    transform: translateX(20px);
+}
+
+/* PDF Generation Styles */
+.generating-pdf .btn-download,
+.generating-pdf .btn-add,
+.generating-pdf .btn-submit,
+.generating-pdf .entry-form {
+    display: none !important;
+}
+
+.generating-pdf .pdf-header {
+    display: block !important;
+}
+
+.generating-pdf .header {
+    display: none !important;
+    /* Hide interactive header */
+}
+
+.generating-pdf .main-card {
+    box-shadow: none;
+    border: none;
+}

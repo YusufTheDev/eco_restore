@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * Returns the importmap for this application.
+ *
+ * - "path" is a path inside the asset mapper system. Use the
+ *     "debug:asset-map" command to see the full list of paths.
+ *
+ * - "entrypoint" (JavaScript only) set to true for any module that will
+ *     be used as an "entrypoint" (and passed to the importmap() Twig function).
+ *
+ * The "importmap:require" command can be used to add new entries to this file.
+ */
 return [
     'app' => [
         'path' => './assets/app.js',
@@ -14,24 +25,40 @@ return [
     '@hotwired/turbo' => [
         'version' => '7.3.0',
     ],
-    // Let Symfony find Vue automatically via version
-    'vue' => [
-        'version' => '3.5.22',
+    '@vue/runtime-dom' => [
+        'version' => '3.5.26',
     ],
-    '@vue/runtime-dom' => [ 'version' => '3.5.22' ],
-    '@vue/compiler-dom' => [ 'version' => '3.5.26' ],
-    '@vue/shared' => [ 'version' => '3.5.22' ],
-    '@vue/runtime-core' => [ 'version' => '3.5.22' ],
-    '@vue/compiler-core' => [ 'version' => '3.5.26' ],
-    '@vue/reactivity' => [ 'version' => '3.5.22' ],
-    // Critical: Use the local path for the loader
+    '@vue/compiler-dom' => [
+        'version' => '3.5.26',
+    ],
+    '@vue/shared' => [
+        'version' => '3.5.26',
+    ],
+    '@vue/runtime-core' => [
+        'version' => '3.5.26',
+    ],
+    '@vue/compiler-core' => [
+        'version' => '3.5.26',
+    ],
+    '@vue/reactivity' => [
+        'version' => '3.5.26',
+    ],
     '@symfony/ux-vue' => [
-        'path' => './vendor/symfony/ux-vue/assets/dist/loader.js',
+        'path' => '@symfony/ux-vue/loader.js',
+    ],
+    '@symfony/ux-vue/render_controller.js' => [
+        'path' => '@symfony/ux-vue/render_controller.js',
     ],
     'chart.js' => [
         'version' => '4.5.1',
     ],
     '@kurkle/color' => [
         'version' => '0.3.4',
+    ],
+    'vue' => [
+        'path' => './assets/vendor/vue/dist/vue.esm-bundler.js',
+    ],
+    'chart.js/auto' => [
+        'version' => '4.5.1',
     ],
 ];
