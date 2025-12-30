@@ -2,336 +2,434 @@ import { ref, onMounted, computed } from 'vue';
 import Chart from 'chart.js/auto';
 
 export default {
+    props: ['projectId'],
     template: `
-        <div class="dashboard-container">
-            <!-- SCREEN ONLY HEADER -->
-            <div class="header screen-only">
-                <div>
-                    <h1>EcoRestore Dashboard</h1>
-                    <div style="opacity: 0.8; font-size: 14px; margin-top: 5px;">Project: Building A (Day 3)</div>
-                </div>
-                <button @click="downloadReport" class="btn-download">Export PDF</button>
-            </div>
-
-            <div class="content-grid screen-only">
-                <!-- Left Column: Metrics & Form -->
-                <div>
-                    <div class="metric-box">
-                        <div class="metric-label">Total Carbon Footprint</div>
-                        <div class="metric-value">
-                            {{ totalScore.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }} 
-                            <span style="font-size: 24px; color: #94a3b8; font-weight: 500;">kgCO₂e</span>
-                        </div>
-                        
-                        <!-- Projected Increase Badge -->
-                        <div v-if="stagedTotal > 0" style="margin-top: 10px; font-size: 14px; font-weight: 600; color: #eab308; display: flex; align-items: center; gap: 6px;">
-                            <span>▲ +{{ stagedTotal.toFixed(1) }} pending</span>
-                            <span style="font-size: 12px; color: #94a3b8; font-weight: 400;">(Proj: {{ projectedTotal.toFixed(1) }})</span>
-                        </div>
-                    </div>
-
-                    <!-- Recommendation Alert -->
-                    <div v-if="recommendation" class="mb-6 mp-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between screen-only" style="margin-bottom: 20px;">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">💡</span>
+        <div class="dashboard-container w-full min-h-screen bg-slate-50/50 font-sans pb-20">
+            <!-- HEADER SECTION -->
+            <div class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30 screen-only">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex flex-col md:flex-row justify-between items-center h-auto md:h-20 py-4 md:py-0 gap-4">
+                        <div class="flex items-center gap-4 w-full md:w-auto">
+                            <a href="/projects" class="group flex items-center justify-center w-10 h-10 rounded-full bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 border border-slate-100 transition-all" title="Back to Projects">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                            </a>
                             <div>
-                                <h4 class="font-bold text-yellow-800" style="margin:0; font-size:14px;">Better Choice Available</h4>
-                                <p class="text-sm text-yellow-700" style="margin:0; font-size:12px;">
-                                    Switching to <span class="font-bold">{{ recommendation.name }}</span> could save 
-                                    <span class="font-bold">{{ recommendation.percent_saving }}%</span> carbon impact.
-                                </p>
+                                <h1 class="text-xl md:text-2xl font-bold text-slate-800 tracking-tight leading-none">Project Dashboard</h1>
+                                <div class="flex items-center gap-3 text-xs font-medium text-slate-500 mt-1">
+                                    <span class="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-mono">ID: {{ projectId }}</span>
+                                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                                    <span class="text-green-600 flex items-center gap-1.5">
+                                        <span class="relative flex h-2 w-2">
+                                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                          <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                        </span>
+                                        Active
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        <button @click="applyRecommendation" class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm font-medium transition-colors" style="border:none; cursor:pointer;">
-                            Switch Material
+                        <button @click="downloadReport" class="w-full md:w-auto group flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-semibold shadow-md hover:bg-slate-800 hover:shadow-lg transition-all active:scale-95">
+                            <span class="text-lg leading-none group-hover:-translate-y-0.5 transition-transform duration-300">📄</span>
+                            <span>Export Full Report</span>
                         </button>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Material Entry Form -->
-                    <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100 screen-only">
-                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2" style="margin-top:0;">
-                            <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm" style="display:inline-flex; width:24px; height:24px; align-items:center; justify-content:center; border-radius:50%; background:#dbeafe; color:#2563eb; margin-right:8px;">1</span>
-                            Add Material
-                        </h2>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 screen-only">
+                
+                <!-- TOP STATS ROW -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Total Impact Card -->
+                    <div class="col-span-1 md:col-span-2 bg-white rounded-2xl p-6 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] border border-slate-100 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity duration-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-40 w-40" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="bg-blue-50 text-blue-700 p-1.5 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd" /></svg>
+                                </span>
+                                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Carbon Footprint</h3>
+                            </div>
+                            <div class="flex items-baseline gap-3 mt-4">
+                                <span class="text-5xl font-extrabold text-slate-900 tracking-tight">
+                                    {{ totalScore.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }}
+                                </span>
+                                <span class="text-xl font-medium text-slate-400">kgCO₂e</span>
+                            </div>
+                             <!-- Projected Increase -->
+                            <div v-if="stagedTotal > 0" class="mt-4 inline-flex items-center gap-3 bg-slate-50 border border-slate-100 pr-4 pl-3 py-1.5 rounded-full">
+                                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                <span class="font-semibold text-slate-700 text-sm">+{{ stagedTotal.toFixed(1) }} pending</span>
+                                <span class="text-xs text-slate-400 pl-2 border-l border-slate-200">Proj: {{ projectedTotal.toFixed(1) }}</span>
+                            </div>
+                        </div>
+                    </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8" style="display:grid; gap:20px;">
-                            <!-- Search Section -->
-                            <div class="space-y-4">
-                                <label class="block text-sm font-semibold text-gray-700">Material Search</label>
-                                <div class="relative" style="position:relative;">
+                    <!-- Chart Card -->
+                    <div class="bg-white rounded-2xl p-6 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] border border-slate-100 flex flex-col justify-between">
+                         <div class="flex items-center justify-between mb-4">
+                             <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Breakdown</h3>
+                         </div>
+                         <div class="relative h-40 w-full flex items-center justify-center">
+                              <canvas id="impactChart"></canvas>
+                         </div>
+                         </div>
+                    </div>
+
+
+                <!-- MAIN WORKSPACE ROW -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <!-- LEFT COLUMN: ADD MATERIAL (Span 8) -->
+                    <div class="lg:col-span-8 space-y-6">
+                        
+                        <!-- Recommendation Banner -->
+                         <div v-if="recommendation" class="p-1 bg-gradient-to-r from-amber-200 via-orange-100 to-amber-100 rounded-2xl shadow-sm">
+                            <div class="bg-white/60 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <div class="bg-amber-500 text-white p-2.5 rounded-xl shadow-lg shadow-amber-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-800">Optimization Available</h4>
+                                        <p class="text-sm text-slate-600 mt-0.5" >
+                                            Switch to <span class="font-bold text-amber-700 border-b border-amber-300/50">{{ recommendation.name }}</span> to reduce impact by 
+                                            <span class="font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-xs">{{ recommendation.percent_saving }}%</span>.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button @click="applyRecommendation" class="px-5 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-black text-sm font-bold shadow-lg shadow-slate-200 hover:shadow-xl transition-all transform hover:-translate-y-0.5 active:translate-y-0">
+                                    Apply Change
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Add Material Card -->
+                        <div class="bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 overflow-visible">
+                            <div class="p-6 border-b border-slate-50 flex justify-between items-center">
+                                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <span class="bg-blue-600 text-white w-6 h-6 rounded flex items-center justify-center text-xs font-bold shadow-md shadow-blue-200">1</span>
+                                    Add New Material
+                                </h3>
+                                <div class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Entry Form</div>
+                            </div>
+                            
+                            <div class="p-6 md:p-8 space-y-8">
+                                <!-- Search Input -->
+                                <div class="relative group z-20">
+                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                    </div>
                                     <input 
                                         type="text" 
                                         v-model="searchQuery" 
                                         @input="performSearch"
-                                        placeholder="e.g. Pine, Granite, Steel..."
-                                        class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                        style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px;"
+                                        placeholder="Type to search (e.g. Concrete, Steel, Wood...)"
+                                        class="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-lg placeholder-slate-400"
                                     >
-                                    
-                                    <!-- Search Results Dropdown -->
-                                    <div v-if="searchResults.length > 0" class="absolute z-10 w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-100 max-h-60 overflow-y-auto" style="position:absolute; width:100%; background:white; z-index:10; border:1px solid #e2e8f0; border-radius:8px; max-height:200px; overflow-y:auto; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+                                    <!-- Dropdown -->
+                                    <div v-if="searchResults.length > 0" class="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden ring-1 ring-black/5 max-h-80 overflow-y-auto">
                                         <div 
                                             v-for="result in searchResults" 
                                             :key="result.id"
                                             @click="selectMaterial(result)"
-                                            class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors"
-                                            style="padding:10px; cursor:pointer; border-bottom:1px solid #f1f5f9;"
+                                            class="p-4 hover:bg-blue-50/50 cursor-pointer border-b border-slate-50 last:border-0 transition-colors group flex justify-between items-center"
                                         >
-                                            <div class="font-medium text-gray-800" style="font-weight:500;">{{ result.name }}</div>
-                                            <div class="text-xs text-gray-500 mt-1 flex justify-between" style="font-size:12px; color:#64748b; display:flex; justify-content:space-between;">
-                                                <span>{{ result.category }}</span>
-                                                <span class="font-mono bg-gray-100 px-2 py-0.5 rounded">{{ result.factor }} kgCO₂e/{{ result.unit }}</span>
+                                            <div>
+                                                <div class="font-bold text-slate-800 group-hover:text-blue-700 transition-colors">{{ result.name }}</div>
+                                                <div class="text-xs font-medium text-slate-500 mt-0.5">{{ result.category }}</div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="font-mono font-bold text-slate-700">{{ result.factor }}</div>
+                                                <div class="text-[10px] uppercase font-bold text-slate-400">kgCO₂e / {{ result.unit }}</div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Selected Item Preview -->
-                                <div v-if="newItem.materialId" class="p-4 bg-blue-50 rounded-lg border border-blue-100 animate-fade-in" style="margin-top:10px; background:#eff6ff; padding:15px; border-radius:8px; border:1px solid #dbeafe;">
-                                    <div class="flex justify-between items-start mb-2" style="display:flex; justify-content:space-between;">
-                                        <div>
-                                            <span class="text-xs font-bold text-blue-600 uppercase tracking-wider" style="font-size:10px; font-weight:bold; color:#2563eb;">SELECTED</span>
-                                            <h3 class="font-bold text-blue-900 text-lg" style="margin:0; font-size:16px;">{{ newItem.previewName }}</h3>
+                                <!-- Selection & Config Grid -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <!-- Selected Preview -->
+                                    <div class="space-y-4">
+                                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Selected Material</label>
+                                        <div v-if="newItem.materialId" class="h-40 bg-gradient-to-br from-blue-50 to-slate-50 rounded-2xl border border-blue-100 p-6 flex flex-col justify-between relative overflow-hidden">
+                                            <div class="relative z-10">
+                                                <h4 class="font-bold text-blue-900 text-lg leading-tight line-clamp-2" :title="newItem.previewName">{{ newItem.previewName }}</h4>
+                                                <div class="mt-2 text-sm text-blue-600/80 font-medium flex items-center gap-1.5">
+                                                     <span class="bg-white/50 px-2 py-0.5 rounded text-xs border border-blue-100/50">{{ newItem.previewUnit }}</span>
+                                                     <span v-if="newItem.meta.source_date" class="bg-green-100/80 text-green-700 px-2 py-0.5 rounded text-xs border border-green-200/50">Verified {{ newItem.meta.source_date.slice(0,4) }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="relative z-10 pt-4 border-t border-blue-100/50 mt-auto flex justify-between items-end">
+                                                <span class="text-3xl font-bold text-blue-700 tracking-tight">{{ newItem.selectedFactor }}</span>
+                                                <span class="text-xs font-bold text-blue-400 uppercase mb-1">Impact Factor</span>
+                                            </div>
+                                            <!-- Decorative bg pattern -->
+                                            <div class="absolute -bottom-6 -right-6 w-24 h-24 bg-blue-500/5 rounded-full blur-xl"></div>
                                         </div>
-                                        <div class="text-right" style="text-align:right;">
-                                            <div class="text-2xl font-bold text-blue-600" style="font-size:18px; font-weight:bold;">{{ newItem.selectedFactor }}</div>
-                                            <div class="text-xs text-blue-400">kgCO₂e / {{ newItem.previewUnit }}</div>
+                                        <div v-else class="h-40 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center p-6 text-slate-400">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                            <span class="text-sm font-semibold">Search and select a material to begin</span>
                                         </div>
                                     </div>
-                                    
-                                    <!-- RICS Badges -->
-                                    <div class="flex flex-wrap gap-2 mt-3" style="display:flex; gap:8px; margin-top:8px;">
-                                        <span v-if="newItem.meta.source_date" style="background:#dcfce7; color:#166534; padding:2px 6px; border-radius:4px; font-size:11px;">
-                                            ✅ Verified {{ newItem.meta.source_date.slice(0,4) }}
-                                        </span>
-                                        <span v-if="industryComparison" :style="{ background: industryComparison.good ? '#dcfce7' : '#fee2e2', color: industryComparison.good ? '#166534' : '#991b1b' }" style="padding:2px 6px; border-radius:4px; font-size:11px; font-weight:600;">
-                                            {{ industryComparison.label }} ({{ industryComparison.percent }}%)
-                                        </span>
+
+                                    <!-- Configuration Inputs -->
+                                    <div class="space-y-6">
+                                        <div class="space-y-2">
+                                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Usage Quantity</label>
+                                            <div class="flex items-center">
+                                                <input 
+                                                    type="number" 
+                                                    v-model="newItem.quantity" 
+                                                    min="0"
+                                                    step="0.01"
+                                                    :disabled="!newItem.materialId"
+                                                    class="quantity-input w-full px-5 py-3 rounded-l-xl border-y border-l border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-lg transition-all"
+                                                    placeholder="0.00"
+                                                >
+                                                <div class="bg-slate-100 px-4 py-3 border border-slate-200 rounded-r-xl text-slate-500 font-bold text-sm min-w-[3.5rem] text-center">
+                                                    {{ newItem.previewUnit || '-' }}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Simple Transport Toggle -->
+                                        <div :class="{'bg-slate-50 border-slate-200': !newItem.addTransport, 'bg-blue-50/30 border-blue-100': newItem.addTransport}" class="border rounded-xl p-4 transition-colors">
+                                            <label class="flex items-center justify-between cursor-pointer select-none">
+                                                <span class="font-bold text-slate-700 text-sm flex items-center gap-2">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" /></svg>
+                                                    Add Logistics
+                                                </span>
+                                                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                                    <input type="checkbox" v-model="newItem.addTransport" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 checked:right-0 checked:border-blue-600"/>
+                                                    <label class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-200 cursor-pointer"></label>
+                                                </div>
+                                            </label>
+                                            
+                                            <div v-show="newItem.addTransport" class="mt-4 pt-4 border-t border-slate-200/50 grid grid-cols-2 gap-3">
+                                                 <select v-model="newItem.transportMethod" class="w-full text-sm rounded-lg border-slate-300 focus:ring-blue-500 py-2">
+                                                    <option value="truck">Truck</option>
+                                                    <option value="rail">Train</option>
+                                                    <option value="ship">Ship</option>
+                                                </select>
+                                                <div class="relative">
+                                                     <input type="number" v-model="newItem.transportDistance" class="w-full text-sm rounded-lg border-slate-300 focus:ring-blue-500 py-2 pr-8" placeholder="Dist">
+                                                     <span class="absolute right-3 top-2 text-xs text-slate-400 font-bold">km</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Add Button -->
+                                        <button 
+                                            @click="addItem" 
+                                            :disabled="!isValidItem"
+                                            class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transform transition-all active:scale-[0.98] flex items-center justify-center gap-2 group"
+                                        >
+                                            <span class="text-lg">Add to Claim</span>
+                                            <span v-if="isValidItem" class="ml-2 bg-white/20 px-2 py-0.5 rounded text-sm font-mono group-hover:bg-white/30 transition-colors">
+                                                +{{ currentImpact.toFixed(2) }}
+                                            </span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <!-- Quantity & Transport Section -->
-                            <div class="space-y-6">
-                                <div style="margin-bottom:15px;">
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity ({{ newItem.previewUnit || 'units' }})</label>
-                                    <input 
-                                        type="number" 
-                                        v-model="newItem.quantity" 
-                                        min="0"
-                                        step="0.01"
-                                        :disabled="!newItem.materialId"
-                                        class="quantity-input w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Amount..."
-                                        style="width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px;"
-                                    >
-                                </div>
-
-                                <!-- Transport Toggle -->
-                                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200" style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:15px;">
-                                    <label class="flex items-center gap-3 cursor-pointer mb-4" style="display:flex; gap:10px; cursor:pointer;">
-                                        <input type="checkbox" v-model="newItem.addTransport">
-                                        <span class="font-medium text-gray-700">Include Logistics / Transport</span>
-                                    </label>
-
-                                    <div v-if="newItem.addTransport" class="grid grid-cols-2 gap-4 animate-fade-in pl-8" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-500 mb-1" style="font-size:11px;">Method</label>
-                                            <select v-model="newItem.transportMethod" class="w-full text-sm rounded-md border-gray-300" style="width:100%; padding:6px; border:1px solid #cbd5e1; border-radius:4px;">
-                                                <option value="truck">Truck (Road)</option>
-                                                <option value="rail">Train (Rail)</option>
-                                                <option value="ship">Cargo Ship</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-500 mb-1" style="font-size:11px;">Distance (km)</label>
-                                            <input type="number" v-model="newItem.transportDistance" class="w-full text-sm rounded-md border-gray-300" style="width:100%; padding:6px; border:1px solid #cbd5e1; border-radius:4px;">
-                                        </div>
-                                        <div class="col-span-2 text-xs text-gray-500 mt-1" style="grid-column: span 2; font-size:11px; color:#64748b;">
-                                            + {{ transportImpact.toFixed(2) }} kgCO₂e (Transport Impact)
-                                        </div>
+                    <!-- RIGHT COLUMN: PENDING ITEMS (Span 4) -->
+                    <div class="lg:col-span-4 space-y-6">
+                        <div class="bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 min-h-[500px] flex flex-col">
+                             <div class="p-6 border-b border-slate-50">
+                                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <span class="bg-purple-600 text-white w-6 h-6 rounded flex items-center justify-center text-xs font-bold shadow-md shadow-purple-200">2</span>
+                                    Pending Review
+                                </h3>
+                            </div>
+                            
+                            <div class="flex-grow p-4 overflow-y-auto max-h-[600px] custom-scrollbar">
+                                <div v-if="items.length === 0" class="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-4 py-12">
+                                    <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                     </div>
+                                    <p class="text-sm font-medium">No items staged yet.<br>Add some materials to see them here.</p>
                                 </div>
+                                
+                                <ul v-else class="space-y-3">
+                                    <li v-for="(item, idx) in items" :key="idx" class="bg-slate-50 rounded-xl p-4 border border-slate-100 hover:border-blue-200 hover:shadow-sm transition-all group relative">
+                                        <button @click="items.splice(idx, 1)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full p-1 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </button>
+                                        <div class="pr-6">
+                                            <h5 class="font-bold text-slate-800 text-sm truncate" :title="item.name">{{ item.name }}</h5>
+                                            <div class="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                                                <span class="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">{{ item.quantity }} {{ item.unit }}</span>
+                                                <span v-if="item.transportDistance > 0" class="flex items-center gap-1">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                                    {{ item.transportDistance }}km
+                                                </span>
+                                            </div>
+                                            <div class="mt-2 pt-2 border-t border-slate-200/50 flex justify-end">
+                                                <span class="font-bold text-blue-700 text-sm">{{ item.totalImpact.toFixed(2) }} kgCO₂e</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
 
+                            <div class="p-6 border-t border-slate-50 bg-slate-50/50">
+                                <div class="flex justify-between items-center mb-4">
+                                    <span class="text-sm font-bold text-slate-500 uppercase">Pending Total</span>
+                                    <span class="text-xl font-extrabold text-slate-800">{{ stagedTotal.toFixed(2) }}</span>
+                                </div>
                                 <button 
-                                    @click="addItem" 
-                                    :disabled="!isValidItem"
-                                    class="w-full py-3 bg-blue-600 text-white rounded-lg font-bold shadow-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all active:scale-95 flex items-center justify-center gap-2"
-                                    style="width:100%; padding:12px; background:#2563eb; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;"
+                                    @click="submitClaim" 
+                                    :disabled="loading || items.length === 0"
+                                    class="w-full py-3 bg-slate-900 text-white rounded-lg font-bold shadow-lg shadow-slate-300 hover:bg-black hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:transform-none disabled:shadow-none"
                                 >
-                                    <span>Add Item to Claim</span>
-                                    <span v-if="isValidItem" class="bg-blue-500 px-2 py-0.5 rounded text-sm" style="background:#3b82f6; padding:2px 6px; border-radius:4px; font-size:12px; margin-left:8px;">
-                                        +{{ currentImpact.toFixed(2) }} kg
-                                    </span>
+                                    {{ loading ? 'Processing...' : 'Submit Claim' }}
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column: Chart -->
-                <div style="display: flex; flex-direction: column;">
-                    <div style="position: relative; height: 300px; width: 100%;">
-                        <canvas id="impactChart"></canvas>
+                <!-- HISTORY SECTION -->
+                <div v-if="historyItems.length > 0" class="bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 overflow-hidden">
+                    <div class="p-6 border-b border-slate-50">
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                             <span class="bg-slate-200 text-slate-600 w-6 h-6 rounded flex items-center justify-center text-xs font-bold">3</span>
+                             Project History
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50/50 text-slate-500 text-xs uppercase tracking-wider font-bold border-b border-slate-100">
+                                <tr>
+                                    <th class="px-6 py-4 w-32">Date</th>
+                                    <th class="px-6 py-4">Material</th>
+                                    <th class="px-6 py-4 text-right w-32">Qty</th>
+                                    <th class="px-6 py-4 text-right w-32">Logistics</th>
+                                    <th class="px-6 py-4 text-right w-32">Impact</th>
+                                    <th class="px-6 py-4 text-right w-24">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">
+                                <tr v-for="(item, idx) in historyItems" :key="'hist-'+idx" class="group hover:bg-blue-50/30 transition-colors">
+                                    <td class="px-6 py-4 text-xs font-mono text-slate-400 group-hover:text-blue-400 whitespace-nowrap">{{ item.date }}</td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-slate-700 text-sm truncate max-w-[200px]" :title="item.name">{{ item.name }}</div>
+                                        <div class="text-[10px] text-slate-400">{{ item.unit }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right font-mono text-sm text-slate-600">{{ item.quantity }}</td>
+                                    <td class="px-6 py-4 text-right text-xs text-slate-500">
+                                        <span v-if="item.transportDistance > 0" class="px-2 py-1 bg-slate-100 rounded-full">{{ item.transportDistance }}km</span>
+                                        <span v-else class="text-slate-300">-</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right font-bold text-slate-800 text-sm">
+                                        {{ item.totalImpact.toFixed(2) }}
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button @click="deleteItem(item.id)" class="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all" title="Delete Item">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+
             </div>
 
-            <!-- Staging and Submission Table (Full Width) -->
-            <div v-if="items.length > 0" class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 screen-only" style="margin-top:40px; background:white; border-radius:12px; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1); border:1px solid #f1f5f9;">
-                <div class="p-6 border-b border-gray-100 flex justify-between items-center" style="padding:20px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between;">
-                    <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2" style="margin:0; font-size:20px;">
-                        <span class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm" style="display:inline-flex; width:28px; height:28px; align-items:center; justify-content:center; background:#f3e8ff; color:#9333ea; border-radius:50%; margin-right:8px;">2</span>
-                        Review & Submit
-                    </h2>
-                    <div class="text-sm text-gray-500" style="color:#64748b;">{{ items.length }} items pending</div>
+            <!-- PDF Report (Hidden for display, used for generation) -->
+            <div class="pdf-report-container bg-white p-8" id="pdf-report" style="display:none; width: 210mm; min-height: 297mm; color: #333; font-family: sans-serif;">
+                <div class="border-b-2 border-slate-800 pb-6 mb-8 flex justify-between items-end">
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-900 mb-2">Carbon Impact Report</h1>
+                        <p class="text-slate-500">Project ID: {{ projectId }}</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-4xl font-extrabold text-slate-900">{{ grandTotalReport.toFixed(2) }}</div>
+                        <div class="text-sm font-bold text-slate-500 uppercase tracking-wider">kgCO₂e Total</div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-100 flex justify-between">
+                         <div>
+                            <span class="block text-xs font-bold text-slate-400 uppercase">Generated On</span>
+                            <span class="block font-medium">{{ new Date().toLocaleDateString() }}</span>
+                         </div>
+                         <div class="text-right">
+                             <span class="block text-xs font-bold text-slate-400 uppercase">Status</span>
+                             <span class="block font-medium text-green-600">Active</span>
+                         </div>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Material Breakdown</h3>
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
+                                <tr>
+                                    <th class="px-3 py-2">Material</th>
+                                    <th class="px-3 py-2 text-right">Qty</th>
+                                    <th class="px-3 py-2 text-right">Factor</th>
+                                    <th class="px-3 py-2 text-right">Impact</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr v-for="(item, idx) in historyItems" :key="'rpt-'+idx">
+                                    <td class="px-3 py-2 font-medium">{{ item.name }}</td>
+                                    <td class="px-3 py-2 text-right font-mono">{{ item.quantity }} {{ item.unit }}</td>
+                                    <td class="px-3 py-2 text-right text-slate-500">{{ (item.totalImpact / item.quantity).toFixed(2) }}</td>
+                                    <td class="px-3 py-2 text-right font-bold">{{ item.totalImpact.toFixed(2) }}</td>
+                                </tr>
+                                <tr v-if="historyItems.length === 0">
+                                    <td colspan="4" class="px-3 py-4 text-center text-slate-400 italic">No recorded items yet.</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="border-t-2 border-slate-200 font-bold">
+                                <tr>
+                                    <td colspan="3" class="px-3 py-3 text-right uppercase text-xs">Total Impact</td>
+                                    <td class="px-3 py-3 text-right">{{ grandTotalReport.toFixed(2) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
                 
-                <div class="overflow-x-auto">
-                    <table class="w-full" style="width:100%; border-collapse:collapse;">
-                        <thead class="bg-gray-50 text-gray-500 text-xs uppercase" style="background:#f8fafc; font-size:12px; text-transform:uppercase; color:#64748b;">
-                            <tr>
-                                <th class="px-6 py-3 text-left" style="padding:12px 24px; text-align:left;">Material</th>
-                                <th class="px-6 py-3 text-right" style="padding:12px 24px; text-align:right;">Qty</th>
-                                <th class="px-6 py-3 text-right" style="padding:12px 24px; text-align:right;">Logistics</th>
-                                <th class="px-6 py-3 text-right" style="padding:12px 24px; text-align:right;">Impact</th>
-                                <th class="px-6 py-3" style="padding:12px 24px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <tr v-for="(item, idx) in items" :key="idx" class="hover:bg-gray-50" style="border-bottom:1px solid #f1f5f9;">
-                                <td class="px-6 py-4 font-medium text-gray-800" style="padding:16px 24px; font-weight:500;">{{ item.name }}</td>
-                                <td class="px-6 py-4 text-right text-gray-600" style="padding:16px 24px; text-align:right;">{{ item.quantity }} {{ item.unit }}</td>
-                                <td class="px-6 py-4 text-right text-gray-500 text-sm" style="padding:16px 24px; text-align:right; font-size:13px; color:#64748b;">
-                                    <div v-if="item.transportDistance > 0">
-                                        {{ item.transportDistance }}km ({{ item.transportMethod }})
-                                    </div>
-                                    <div v-else>-</div>
-                                </td>
-                                <td class="px-6 py-4 text-right font-bold text-blue-600" style="padding:16px 24px; text-align:right; font-weight:bold; color:#2563eb;">
-                                    {{ item.totalImpact.toFixed(2) }} <span class="text-xs text-gray-400 font-normal" style="font-weight:normal; color:#cbd5e1;">kgCO₂e</span>
-                                </td>
-                                <td class="px-6 py-4 text-right" style="padding:16px 24px; text-align:right;">
-                                    <button @click="items.splice(idx, 1)" class="text-red-400 hover:text-red-600 text-sm" style="color:#f87171; background:none; border:none; cursor:pointer;">✕</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                        <tfoot class="bg-purple-50" style="background:#faf5ff;">
-                            <tr>
-                                <td colspan="3" class="px-6 py-4 text-right font-bold text-purple-900" style="padding:16px 24px; text-align:right; color:#581c87;">Total Pending Impact</td>
-                                <td class="px-6 py-4 text-right font-bold text-purple-700 text-lg" style="padding:16px 24px; text-align:right; font-size:18px; color:#7e22ce;">{{ stagedTotal.toFixed(2) }} kg</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-
-                <div class="p-6 bg-gray-50 border-t border-gray-100 text-right" style="padding:20px; background:#f8fafc; border-top:1px solid #e2e8f0; text-align:right;">
-                    <button 
-                        @click="submitClaim" 
-                        :disabled="loading"
-                        class="px-8 py-3 bg-green-600 text-white rounded-lg font-bold shadow-md hover:bg-green-700 transition-colors flex items-center gap-2 ml-auto"
-                        style="padding:12px 30px; background:#16a34a; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center;"
-                    >
-                        <span v-if="loading">Processing...</span>
-                        <span v-else>Submit Final Claim</span>
-                    </button>
+                <div class="mt-12 text-center text-xs text-slate-400 pt-8 border-t border-slate-100">
+                    <p>EcoRestore Carbon Tracking System</p>
                 </div>
             </div>
 
-            <!-- Generated PDF Report (Hidden from Screen) -->
-            <div class="pdf-report-container" id="pdf-report" style="display:none;">
-                <div class="pdf-header">
-                    <h1>Carbon Impact Report</h1>
-                    <p>Generated on {{ new Date().toLocaleDateString() }}</p>
-                </div>
-
-                <div class="pdf-summary-box">
-                    <div class="summary-item">
-                        <label>Total Carbon Footprint</label>
-                        <div class="value">{{ grandTotalReport.toFixed(2) }} <span>kgCO₂e</span></div>
+             <!-- Loading Overlay -->
+             <div v-if="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center transition-opacity duration-300">
+                <div class="bg-white p-8 rounded-2xl shadow-2xl border border-slate-100 flex flex-col items-center gap-6 transform scale-100 animate-in fade-in zoom-in duration-200">
+                    <div class="relative">
+                        <div class="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
+                        </div>
                     </div>
-                    <div class="summary-item">
-                        <label>Total Items</label>
-                        <div class="value">{{ items.length + historyItems.length }}</div>
+                    <div class="text-center">
+                        <div class="font-bold text-slate-800 text-lg">Updating...</div>
+                        <div class="text-slate-500 text-sm">Synchronizing data</div>
                     </div>
                 </div>
-
-                <!-- Pending Items Section -->
-                <div v-if="items.length > 0">
-                    <h3 class="section-title">Pending Submission</h3>
-                    <table class="pdf-table">
-                        <thead>
-                            <tr>
-                                <th>Material</th>
-                                <th>Quantity</th>
-                                <th>Transport</th>
-                                <th class="text-right">Carbon Impact</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(item, idx) in items" :key="'new-'+idx">
-                                <td>{{ item.name }}</td>
-                                <td>{{ item.quantity }} {{ item.unit }}</td>
-                                 <td>
-                                    <span v-if="item.transportDistance > 0">{{ item.transportDistance }}km ({{ item.transportMethod }})</span>
-                                    <span v-else>-</span>
-                                </td>
-                                <td class="text-right font-bold">{{ item.totalImpact.toFixed(2) }} kg</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- History / Submitted Items Section -->
-                <div v-if="historyItems.length > 0">
-                    <h3 class="section-title">Submitted Items log</h3>
-                    <table class="pdf-table">
-                        <thead>
-                            <tr>
-                                <th>Material</th>
-                                <th>Quantity</th>
-                                <th>Transport</th>
-                                <th class="text-right">Carbon Impact</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(item, idx) in historyItems" :key="'base-'+idx">
-                                <td>{{ item.name }}</td>
-                                <td>{{ item.quantity }} {{ item.unit }}</td>
-                                <td>
-                                    <span v-if="item.transportDistance > 0">{{ item.transportDistance }}km ({{ item.transportMethod }})</span>
-                                    <span v-else>-</span>
-                                </td>
-                                <td class="text-right font-bold">{{ item.totalImpact.toFixed(2) }} kg</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="pdf-footer">
-                    <p>EcoRestore Carbon App - Verified RICS Standard Calculation</p>
-                </div>
-            </div>
-
-            <div v-if="loading" class="loading-overlay">
-                Refreshing Data...
             </div>
         </div>
     `,
-    setup() {
+    setup(props) {
         const totalScore = ref(0);
         const loading = ref(true);
         const searchQuery = ref("");
         const searchResults = ref([]);
         const isSearching = ref(false);
         const items = ref([]);
-        const historyItems = ref([]); // Saved items from backend
-
-        // Recommendation System
-        const recommendation = ref(null); // { name, id, percent_saving }
-
-        // Extended Item State (RICS + Transport)
+        const historyItems = ref([]);
+        const recommendation = ref(null);
         const newItem = ref({
             materialId: null,
             quantity: null,
@@ -339,8 +437,7 @@ export default {
             previewUnit: '',
             selectedFactor: 0,
             density: 0,
-            meta: {}, // For badges
-            // Transport
+            meta: {},
             addTransport: false,
             transportDistance: 0,
             transportMethod: 'truck'
@@ -350,7 +447,6 @@ export default {
         let chartInstance = null;
         const quantityInputRef = ref(null);
 
-        // Computed Impacts
         const materialImpact = computed(() => {
             if (!newItem.value.materialId || !newItem.value.quantity) return 0;
             return newItem.value.selectedFactor * newItem.value.quantity;
@@ -358,17 +454,11 @@ export default {
 
         const transportImpact = computed(() => {
             if (!newItem.value.addTransport || !newItem.value.quantity) return 0;
-
-            // Robust Density Fallback: Default to 1000 (water/light timber) if DB is empty (0)
             const safeDensity = newItem.value.density && newItem.value.density > 0 ? newItem.value.density : 1000;
-
-            // Weight (tonnes) = (Qty * Density) / 1000
             const weightTonnes = (newItem.value.quantity * safeDensity) / 1000;
             const dist = newItem.value.transportDistance;
-
             const factors = { truck: 0.0739, rail: 0.0119, ship: 0.0082 };
             const factor = factors[newItem.value.transportMethod] || 0.0739;
-
             return weightTonnes * dist * factor;
         });
 
@@ -389,23 +479,12 @@ export default {
         const isValidItem = computed(() => newItem.value.materialId !== null && newItem.value.quantity > 0);
         const stagedTotal = computed(() => items.value.reduce((acc, item) => acc + item.totalImpact, 0));
         const projectedTotal = computed(() => totalScore.value + stagedTotal.value);
-
-        // Full Report Total (Server + Staged)
         const grandTotalReport = computed(() => totalScore.value + stagedTotal.value);
 
         const fetchStats = async () => {
-            try {
-                const response = await fetch('/api/carbon-stats');
-                const data = await response.json();
-                totalScore.value = data.total_score;
-                lastBreakdown = data.breakdown;
-                historyItems.value = data.history || []; // Store history
-                updateChart(data.breakdown);
-            } catch (e) {
-                console.error("Fetch Stats Error", e);
-            } finally {
-                loading.value = false;
-            }
+            // Pass projectId if available
+            const pid = props.projectId ? `?projectId=${props.projectId}` : '';
+            await robustFetchStats(pid);
         };
 
         const checkRecommendation = async (id) => {
@@ -413,7 +492,7 @@ export default {
             try {
                 const res = await fetch(`/api/recommend/${id}`);
                 const data = await res.json();
-                if (data && data.percent_saving > 5) { // Only show if substantial
+                if (data && data.percent_saving > 5) {
                     recommendation.value = data;
                 }
             } catch (e) {
@@ -423,20 +502,14 @@ export default {
 
         const applyRecommendation = () => {
             if (!recommendation.value) return;
-            // We need to fetch full details for the new item to swap correctly
-            // For simplicity, we just swap name/id/factor and assume unit/density similar or need re-fetch.
-            // Best to re-fetch lookup logic.
-            // UX Shortcut: just clear and search for the recommended name
             searchQuery.value = recommendation.value.name;
-            performSearch(); // This will trigger search, user clicks.
+            performSearch();
         };
 
         const performSearch = () => {
             if (searchTimeout) clearTimeout(searchTimeout);
-            // Smart Reset
             if (newItem.value.materialId) {
                 newItem.value.materialId = null;
-                // Don't clear name immediately if we are just searching
                 newItem.value.meta = {};
                 recommendation.value = null;
             }
@@ -459,18 +532,13 @@ export default {
             newItem.value.previewUnit = m.unit;
             newItem.value.selectedFactor = m.factor;
             newItem.value.density = m.density || 0;
-
             newItem.value.meta = {
                 source_date: m.source_date,
                 industry_average: m.industry_average
             };
-
             searchQuery.value = m.name;
             searchResults.value = [];
-
-            // Trigger Recommendation Check
             checkRecommendation(m.id);
-
             setTimeout(() => {
                 const qtyInput = document.querySelector('.quantity-input');
                 if (qtyInput) qtyInput.focus();
@@ -487,14 +555,33 @@ export default {
                 }
                 chartInstance.data.labels = labels;
                 chartInstance.data.datasets[0].data = data;
-                const baseColors = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
-                if (stagedTotal.value > 0) baseColors.push('#facc15');
+                // Updated Diverse Palette: Red, Blue, Yellow, Purple, Orange, Cyan
+                const baseColors = ['#ef4444', '#3b82f6', '#eab308', '#a855f7', '#f97316', '#06b6d4', '#10b981'];
+                if (stagedTotal.value > 0) baseColors.push('#64748b'); // Grey for projected
                 chartInstance.data.datasets[0].backgroundColor = baseColors;
                 chartInstance.update();
             }
         };
 
         let lastBreakdown = {};
+
+        const deleteItem = async (id) => {
+            if (!confirm('Are you sure you want to delete this item?')) return;
+
+            loading.value = true;
+            try {
+                const response = await fetch(`/api/claim-items/${id}`, { method: 'DELETE' });
+                if (!response.ok) {
+                    throw new Error(`Delete failed: ${response.statusText}`);
+                }
+                await fetchStats();
+            } catch (e) {
+                console.error("Delete failed", e);
+                alert("Failed to delete item. Please try again.");
+            } finally {
+                loading.value = false;
+            }
+        };
 
         const addItem = () => {
             if (isValidItem.value) {
@@ -510,9 +597,7 @@ export default {
                     transportImpact: transportImpact.value,
                     totalImpact: currentImpact.value
                 });
-
                 updateChart(lastBreakdown);
-
                 newItem.value.quantity = null;
                 newItem.value.materialId = null;
                 newItem.value.previewName = '';
@@ -534,10 +619,14 @@ export default {
                     transportMethod: i.transportMethod
                 }));
 
+                // Include projectId in body
+                const body = { items: payload };
+                if (props.projectId) body.projectId = props.projectId;
+
                 await fetch('/api/carbon-stats', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ items: payload })
+                    body: JSON.stringify(body)
                 });
                 items.value = [];
                 await fetchStats();
@@ -548,11 +637,9 @@ export default {
         };
 
         const downloadReport = () => {
-            // Access global html2pdf from CDN
             const element = document.querySelector('.dashboard-container');
             const pdfContainer = document.querySelector('.pdf-report-container');
             const screenElements = document.querySelectorAll('.screen-only');
-
             const opt = {
                 margin: 10,
                 filename: `Carbon_Report_${new Date().toISOString().slice(0, 10)}.pdf`,
@@ -560,17 +647,12 @@ export default {
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
-
             element.classList.add('generating-pdf');
-
-            // UI Toggle
             if (pdfContainer) pdfContainer.style.display = 'block';
             screenElements.forEach(el => el.style.display = 'none');
-
             if (window.html2pdf) {
                 window.html2pdf().set(opt).from(element).save().then(() => {
                     element.classList.remove('generating-pdf');
-                    // Restore UI
                     if (pdfContainer) pdfContainer.style.display = 'none';
                     screenElements.forEach(el => el.style.display = '');
                 });
@@ -583,14 +665,20 @@ export default {
             }
         };
 
-        const robustFetchStats = async () => {
-            const response = await fetch('/api/carbon-stats');
-            const data = await response.json();
-            totalScore.value = data.total_score;
-            lastBreakdown = data.breakdown;
-            historyItems.value = data.history || [];
-            updateChart(data.breakdown);
-            loading.value = false;
+        const robustFetchStats = async (queryString = '') => {
+            try {
+                const response = await fetch('/api/carbon-stats' + queryString);
+                if (!response.ok) throw new Error('Fetch failed');
+                const data = await response.json();
+                totalScore.value = data.total_score;
+                lastBreakdown = data.breakdown;
+                historyItems.value = data.history || [];
+                updateChart(data.breakdown);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                loading.value = false;
+            }
         };
 
         onMounted(async () => {
@@ -608,15 +696,19 @@ export default {
                     plugins: { legend: { position: 'bottom' } }
                 }
             });
-            await robustFetchStats();
+
+            // Initial Fetch
+            const pid = props.projectId ? `?projectId=${props.projectId}` : '';
+            await robustFetchStats(pid);
         });
 
         return {
+            projectId: props.projectId,
             totalScore, loading, items, newItem, currentImpact, isValidItem, stagedTotal, projectedTotal,
             searchQuery, searchResults, performSearch, selectMaterial, isSearching,
             addItem, submitClaim, downloadReport,
             materialImpact, transportImpact, industryComparison,
-            historyItems, grandTotalReport, recommendation, applyRecommendation
+            historyItems, grandTotalReport, recommendation, applyRecommendation, deleteItem
         };
     }
 }
