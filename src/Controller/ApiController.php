@@ -5,13 +5,16 @@ namespace App\Controller;
 use App\Entity\Claim;
 use App\Entity\ClaimItem;
 use App\Entity\Material;
+use App\Entity\Project;
 use App\Repository\ClaimRepository;
 use App\Repository\MaterialRepository;
+use App\Repository\ProjectRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 class ApiController extends AbstractController
 {
@@ -84,20 +87,102 @@ class ApiController extends AbstractController
         }
     }
 
+    // --- PROJECT MANAGEMENT API ---
+
+    #[Route('/api/projects', name: 'api_projects_list', methods: ['GET'])]
+    public function listProjects(): JsonResponse
+    {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        if (!$user)
+            return $this->json(['error' => 'Unauthorized'], 401);
+
+        $projects = $user->getProjects();
+        $data = [];
+        foreach ($projects as $p) {
+            $data[] = [
+                'id' => $p->getId(),
+                'name' => $p->getName(),
+                'description' => $p->getDescription(),
+                'createdAt' => $p->getCreatedAt()->format('Y-m-d H:i:s'),
+                'carbonScore' => $p->getCarbonScore(),
+            ];
+        }
+        return $this->json($data);
+    }
+
+    #[Route('/api/projects', name: 'api_projects_create', methods: ['POST'])]
+    public function createProject(Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        if (!$user)
+            return $this->json(['error' => 'Unauthorized'], 401);
+
+        $data = $request->toArray();
+        $project = new Project();
+        $project->setName($data['name'] ?? 'New Project');
+        $project->setDescription($data['description'] ?? '');
+        $project->setUser($user);
+
+        $em->persist($project);
+        $em->flush();
+
+        return $this->json(['id' => $project->getId(), 'name' => $project->getName()], 201);
+    }
+
+    #[Route('/api/projects/{id}', name: 'api_projects_delete', methods: ['DELETE'])]
+    public function deleteProject(int $id, ProjectRepository $repo, EntityManagerInterface $em): JsonResponse
+    {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        if (!$user)
+            return $this->json(['error' => 'Unauthorized'], 401);
+
+        $project = $repo->find($id);
+
+        if (!$project || $project->getUser() !== $user) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
+        $em->remove($project);
+        $em->flush();
+
+        return $this->json(['status' => 'deleted']);
+    }
+
+    // --- DASHBOARD API (Context-Aware) ---
+
     #[Route('/api/carbon-stats', name: 'api_carbon_stats', methods: ['GET', 'POST'])]
     public function handleStats(
         Request $request,
         EntityManagerInterface $entityManager,
         ClaimRepository $claimRepo,
-        MaterialRepository $materialRepo
+        MaterialRepository $materialRepo,
+        ProjectRepository $projectRepo
     ): JsonResponse {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        if (!$user)
+            return $this->json(['error' => 'Unauthorized'], 401);
+
         // 1. Handle POST: Save new Claim with LinkItems
         if ($request->isMethod('POST')) {
             $data = $request->toArray();
 
+            $projectId = $data['projectId'] ?? null;
+            if (!$projectId)
+                return $this->json(['error' => 'Project ID required'], 400);
+
+            $project = $projectRepo->find($projectId);
+            if (!$project || $project->getUser() !== $user) {
+                return $this->json(['error' => 'Invalid Project Access'], 403);
+            }
+
             $claim = new Claim();
             $claim->setClaimNumber('CLM-' . uniqid());
-            $claim->setPolicyHolder('Dashboard User'); // Hardcoded for now
+            $claim->setPolicyHolder($user->getEmail()); // Use User email
+            $claim->setProject($project);
 
             $totalScore = 0.0;
 
@@ -152,11 +237,18 @@ class ApiController extends AbstractController
         }
 
         // 2. Handle GET: Return grouped data for Chart & Total from Claims
-        $claims = $claimRepo->findAll();
+        $projectId = $request->query->get('projectId');
+        if (!$projectId)
+            return $this->json(['error' => 'Project ID required'], 400);
+
+        $project = $projectRepo->find($projectId);
+        if (!$project || $project->getUser() !== $user) {
+            return $this->json(['error' => 'Invalid Project Access'], 403);
+        }
+
+        $claims = $claimRepo->findBy(['project' => $project]);
         $grandTotal = 0.0;
-        $byCategory = [
-            'Transport' => 0.0,
-        ];
+        $byCategory = [];
 
         $history = []; // Full list of items for Report
 
@@ -182,7 +274,7 @@ class ApiController extends AbstractController
                     $transImpact = 0.0;
                     $dist = $ci->getTransportDistance() ?? 0;
                     if ($dist > 0) {
-                        $density = $mat->getDensity() ?? 0;
+                        $density = $mat->getDensity() ?: 1000;
                         $weightTonnes = ($qty * $density) / 1000;
                         $method = $ci->getTransportMethod() ?? 'truck';
 
@@ -192,19 +284,28 @@ class ApiController extends AbstractController
                             default => 0.0739
                         };
 
-                        $transImpact = ($weightTonnes * $dist * $factor);
-                        $byCategory['Transport'] += $transImpact;
+                        $currentTransImpact = ($weightTonnes * $dist * $factor);
+
+                        if ($currentTransImpact > 0) {
+                            if (!isset($byCategory['Transport'])) {
+                                $byCategory['Transport'] = 0.0;
+                            }
+                            $byCategory['Transport'] += $currentTransImpact;
+                        }
+                        $transImpact = $currentTransImpact; // Assign to transImpact for history and total impact
                     }
 
                     // Add to history
                     $history[] = [
+                        'id' => $ci->getId(), // ClaimItem ID
+                        'claimId' => $claim->getId(),
                         'name' => $mat->getName(),
                         'quantity' => $qty,
                         'unit' => $mat->getUnit(),
                         'totalImpact' => $matImpact + $transImpact,
                         'transportDistance' => $dist,
                         'transportMethod' => $ci->getTransportMethod() ?? 'truck',
-                        'date' => $claim->getId() // Using ID/Timestamp roughly
+                        'date' => $claim->getClaimNumber() // Show Claim Number or Date
                     ];
                 }
             }
@@ -213,7 +314,63 @@ class ApiController extends AbstractController
         return $this->json([
             'total_score' => round($grandTotal, 2),
             'breakdown' => $byCategory,
-            'history' => $history // Sending full history
+            'history' => $history
         ]);
+    }
+
+    #[Route('/api/claim-items/{id}', name: 'api_claim_items_delete', methods: ['DELETE'])]
+    public function deleteClaimItem(int $id, \App\Repository\ClaimItemRepository $repo, EntityManagerInterface $em): JsonResponse
+    {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        if (!$user)
+            return $this->json(['error' => 'Unauthorized'], 401);
+
+        $item = $repo->find($id);
+        if (!$item)
+            return $this->json(['error' => 'Not found'], 404);
+
+        // Security Check: Ensure user owns the project this item belongs to
+        $project = $item->getClaim()->getProject();
+        if ($project->getUser() !== $user) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
+        // Subtract from Claim Total (Optional but good for consistency, though re-calc might be better)
+        // For now, we rely on the next GET /api/carbon-stats to re-sum everything from scratch
+        // But the Claim entity stores a total. We should update it or just let it be inconsistent until re-save?
+        // Actually, the GET /api/carbon-stats sums items dynamically for the "Total Score" response?
+        // Let's look at GET:
+        // $grandTotal += $claim->getTotalCarbonScore();
+        // So it uses the stored total. We MUST update the stored total on the Claim.
+
+        $claim = $item->getClaim();
+        $claim->setTotalCarbonScore($claim->getTotalCarbonScore() - $item->getTotalCarbonImpact()); // Need helper or calc manually
+
+        // Easier: Remove item, then re-calculate claim total
+        $em->remove($item);
+        $em->flush(); // Item gone
+
+        // Recalculate Claim Total
+        $newTotal = 0.0;
+        foreach ($claim->getClaimItems() as $ci) {
+            // Re-calculate impact (logic duped from handleStats, ideal refactor later)
+            $mat = $ci->getMaterial();
+            if ($mat) {
+                $mImpact = $ci->getQuantityUsed() * $mat->getCarbonFootprintPerUnit();
+                $tImpact = 0;
+                if ($ci->getTransportDistance() > 0) {
+                    $d = $mat->getDensity() ?? 0;
+                    $w = ($ci->getQuantityUsed() * $d) / 1000;
+                    $f = match ($ci->getTransportMethod()) { 'rail' => 0.0119, 'ship' => 0.0082, default => 0.0739};
+                    $tImpact = $w * $ci->getTransportDistance() * $f;
+                }
+                $newTotal += ($mImpact + $tImpact);
+            }
+        }
+        $claim->setTotalCarbonScore($newTotal);
+        $em->flush();
+
+        return $this->json(['status' => 'deleted']);
     }
 }

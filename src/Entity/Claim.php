@@ -46,6 +46,10 @@ class Claim
     #[ORM\OneToMany(targetEntity: ClaimItem::class, mappedBy: 'claim', orphanRemoval: true)]
     private Collection $claimItems;
 
+    #[ORM\ManyToOne(inversedBy: 'claims')]
+    #[ORM\JoinColumn(nullable: true)] // Nullable for now to easier migration if existing claims
+    private ?Project $project = null;
+
     public function __construct()
     {
         $this->claimItems = new ArrayCollection();
@@ -127,6 +131,18 @@ class Claim
                 $claimItem->setClaim(null);
             }
         }
+        return $this;
+    }
+
+    public function getProject(): ?Project
+    {
+        return $this->project;
+    }
+
+    public function setProject(?Project $project): static
+    {
+        $this->project = $project;
+
         return $this;
     }
 }
