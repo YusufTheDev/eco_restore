@@ -217,8 +217,16 @@ class ApiController extends AbstractController
                     $materialImpact = $qty * $material->getCarbonFootprintPerUnit();
 
                     // 2. Transport Impact
-                    $density = $material->getDensity() ?? 0;
-                    $weightTonnes = ($qty * $density) / 1000;
+                    $weightTonnes = 0;
+                    $unit = $material->getUnit() ?? 'kg';
+                    if ($unit === 'kg') {
+                        $weightTonnes = $qty / 1000;
+                    } elseif ($unit === 'kWh') {
+                        $weightTonnes = 0;
+                    } else {
+                        $density = $material->getDensity() ?? 0;
+                        $weightTonnes = ($qty * $density) / 1000;
+                    }
 
                     $transportFactor = match ($method) {
                         'rail' => 0.0119,
@@ -273,8 +281,16 @@ class ApiController extends AbstractController
                         $transImpact = 0.0;
                         $dist = $ci->getTransportDistance() ?? 0;
                         if ($dist > 0) {
-                            $density = $mat->getDensity() ?: 1000;
-                            $weightTonnes = ($qty * $density) / 1000;
+                            $unit = $mat->getUnit() ?? 'kg';
+                            $weightTonnes = 0;
+                            if ($unit === 'kg') {
+                                $weightTonnes = $qty / 1000;
+                            } elseif ($unit === 'kWh') {
+                                $weightTonnes = 0;
+                            } else {
+                                $density = $mat->getDensity() ?: 1000;
+                                $weightTonnes = ($qty * $density) / 1000;
+                            }
                             $method = $ci->getTransportMethod() ?? 'truck';
                             $factor = match ($method) { 'rail' => 0.0119, 'ship' => 0.0082, default => 0.0739};
 
@@ -352,8 +368,14 @@ class ApiController extends AbstractController
                 $mImpact = $ci->getQuantityUsed() * $mat->getCarbonFootprintPerUnit();
                 $tImpact = 0;
                 if ($ci->getTransportDistance() > 0) {
-                    $d = $mat->getDensity() ?? 0;
-                    $w = ($ci->getQuantityUsed() * $d) / 1000;
+                    $unit = $mat->getUnit() ?? 'kg';
+                    $w = 0;
+                    if ($unit === 'kg') {
+                        $w = $ci->getQuantityUsed() / 1000;
+                    } elseif ($unit !== 'kWh') {
+                        $d = $mat->getDensity() ?? 0;
+                        $w = ($ci->getQuantityUsed() * $d) / 1000;
+                    }
                     $f = match ($ci->getTransportMethod()) { 'rail' => 0.0119, 'ship' => 0.0082, default => 0.0739};
                     $tImpact = $w * $ci->getTransportDistance() * $f;
                 }
