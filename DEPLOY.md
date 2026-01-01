@@ -1,76 +1,72 @@
-# Deploying to Railway
+# Deploying to Render & Neon (Free Alternative)
 
-This guide outlines how to deploy the EcoRestore application to [Railway](https://railway.app/).
+Since Railway's free trial has ended, here is how to host your app completely for free using **Render** (for the web app) and **Neon** (for the database).
 
 ## Prerequisites
 
-1.  A GitHub account with this repository pushed to it.
-2.  A Railway account (you can sign up with GitHub).
+1.  GitHub account with this repository.
+2.  [Neon Account](https://neon.tech/) (for the Database).
+3.  [Render Account](https://render.com/) (for the Web App).
 
-## Step 1: Push to GitHub
+## Step 1: Create Database on Neon
 
-If you haven't already, run these commands in your project folder to push your code to GitHub:
+1.  Log in to Neon and create a **New Project**.
+2.  Name it `eco_restore`.
+3.  Once created, it will show you a **Connection String** (e.g., `postgresql://...`).
+    -   **Important:** Make sure "Pooled connection" is checked if available, or just copy the direct string.
+    -   Copy this string. You will need it later.
+
+## Step 2: Push Changes to GitHub
+
+Commit the `Dockerfile` I just created:
 
 ```bash
 git add .
-git commit -m "Prepare for deployment"
-git push origin main
+git commit -m "Add Dockerfile for Render"
+git push origin deploy
 ```
 
-*(If you haven't connected a remote repository yet, follow GitHub's instructions to create a new repo and push to it.)*
+## Step 3: Create Web Service on Render
 
-## Step 2: Create Project on Railway
+1.  Log in to Render/Dashboard.
+2.  Click **New +** -> **Web Service**.
+3.  Connect your GitHub repository (`eco_restore`).
+4.  **Configuration:**
+    -   **Name:** `eco-restore` (or similar).
+    -   **Region:** Choose one close to you (e.g., `Ohio (US East)`).
+    -   **Branch:** `deploy` (or `main` if you merged it).
+    -   **Runtime:** **Docker** (This is important! Do not select PHP).
+    -   **Instance Type:** **Free**.
+5.  **Environment Variables:**
+    Scroll down to "Environment Variables" and add these:
+    
+    | Key | Value |
+    | :--- | :--- |
+    | `APP_ENV` | `prod` |
+    | `APP_SECRET` | *(Random String)* |
+    | `DATABASE_URL` | *(Paste your Neon connection string here)* |
+    | `MESSENGER_TRANSPORT_DSN` | `doctrine://default?auto_setup=0` |
 
-1.  Go to your Railway Dashboard.
-2.  Click **New Project** > **Provision PostgreSQL**. This will create a database for your app.
-3.  Once the database is created, click **New** (or "Add a service") > **GitHub Repo**.
-4.  Select your `eco_restore` repository.
-5.  Click **Deploy Now**. It will likely fail or build but not run correctly because we haven't set the environment variables yet. That's normal.
-
-## Step 3: Configure Environment Variables
-
-1.  Click on your new **`eco_restore`** service (the web app, not the database).
-2.  Go to the **Variables** tab.
-3.  Add the following variables:
-
-| Variable | Value | Description |
-| :--- | :--- | :--- |
-| `APP_ENV` | `prod` | Sets Symfony to production mode. |
-| `APP_SECRET` | *(Generate a random string)* | Security token. You can run `openssl rand -hex 16` to generate one. |
-| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` | **Crucial:** Click "Reference Variable" and select `DATABASE_URL` from your PostgreSQL service. It should look like `postgresql://...`. |
-| `MESSENGER_TRANSPORT_DSN` | `doctrine://default?auto_setup=0` | Usage of Doctrine transport. |
-
-**Optional / If using features:**
-- `GOOGLE_CLIENT_ID`: Your Google OAuth Client ID.
-- `GOOGLE_CLIENT_SECRET`: Your Google OAuth Secret.
-- `MAILER_DSN`: E.g., `smtp://user:pass@smtp.provider.com:587` if you send emails.
+6.  Click **Create Web Service**.
 
 ## Step 4: Run Migrations
 
-The database starts empty. You need to create the tables.
+Render uses Docker, so we can't easily run a "Start Command" like in Railway to migrate every time. Instead, we can run it once via the Shell or add it to a script.
 
-1.  Once the deployment successfully builds (green checkmark), go to the **Settings** tab of your web service.
-2.  Under **Deploy**, find **Start Command**.
-3.  Set the **Start Command** to:
-    ```bash
-    php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration && . /assets/scripts/prestart.sh && nginx -c /etc/nginx/nginx.conf
-    ```
-    *Note: The exact Nginx command depends on the Nixpacks builder. If the above fails, you can leave the Start Command empty and run the migration manually:*
-
-**Manual Migration (Safer method):**
-1.  Go to the **Data** tab of your PostgreSQL service in Railway.
-2.  Or simpler: Go to your Web Service > **Shell** tab (once it's running, even if it errors 500).
+**Easiest Way (via Render Shell):**
+1.  Wait for the deployment to finish (it might take a few minutes).
+2.  If it says "Live", go to the **Shell** tab in the Render dashboard for your service.
 3.  Run:
     ```bash
     php bin/console doctrine:migrations:migrate --no-interaction
     ```
 
-## Troubleshooting
+## Comparison to Railway
 
--   **500 Error**: Check the **Logs** tab. It often means a missing environment variable or database connection issue.
--   **Database Errors**: Ensure your `DATABASE_URL` is correct and you've ran the migrations.
--   **Asset Errors**: Ensure `php bin/console asset-map:compile` ran during the build (it's in `nixpacks.toml`).
+| Feature | Railway | Render + Neon |
+| :--- | :--- | :--- |
+| **Cost** | Paid (after trial) | **Free** (Web sleeps, DB is free) |
+| **Speed** | Fast | Slower start (50s cold start) |
+| **DB** | ephemeral on trial | **Persistent** (Neon is great) |
 
-## Note on PHP Version
-
-We have configured `composer.json` and `nixpacks.toml` to use **PHP 8.3**. This is to ensure stability with the hosting platform.
+**Note:** The "Free" web service on Render spins down after 15 minutes of inactivity. When you visit it again, it will take about a minute to load. This is normal for the free tier.
