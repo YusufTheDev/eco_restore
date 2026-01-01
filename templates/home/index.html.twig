@@ -4,13 +4,16 @@
 
 {% block body %}
 <!-- Custom Navbar for Landing Page -->
-<nav class="bg-white shadow">
+<!-- Task 2: Sticky Navbar (Tailwind: sticky top-0, z-50, shadow-sm) -->
+<nav class="bg-white sticky top-0 z-50 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex">
+                <!-- Task 1: Integrate Logo -->
                 <div class="flex-shrink-0 flex items-center">
-                    <a href="{{ path('app_home') }}" class="font-bold text-2xl text-green-600 flex items-center gap-2">
-                        <span>🌿</span> EcoRestore
+                    <a href="{{ path('app_home') }}" class="flex items-center gap-2">
+                        <img src="{{ asset('images/logo.png') }}" alt="EcoRestore Logo" class="h-10 w-auto inline-block align-text-top">
+                        <span class="font-bold text-2xl text-green-600">EcoRestore</span>
                     </a>
                 </div>
             </div>
@@ -49,10 +52,30 @@
     </div>
 </div>
 
+<!-- Task 3: IMPACT STATS BAR -->
+<div class="bg-green-700 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center text-white">
+            <div>
+                <div class="text-3xl font-bold">500+</div>
+                <div class="text-green-100 mt-1">Active Projects</div>
+            </div>
+            <div>
+                <div class="text-3xl font-bold">12,000kg</div>
+                <div class="text-green-100 mt-1">CO2 Emissions Saved</div>
+            </div>
+            <div>
+                <div class="text-3xl font-bold">150+</div>
+                <div class="text-green-100 mt-1">Sustainable Materials</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 2. THE "WHY" SECTION -->
-<div class="bg-gray-50 py-16">
+<div class="bg-gradient-to-b from-white to-green-50 py-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+        <h2 class="text-3xl font-extrabold text-green-900 sm:text-4xl">
             Why Restore?
         </h2>
         <p class="mt-4 text-lg text-gray-500 max-w-3xl mx-auto">
@@ -62,10 +85,10 @@
 </div>
 
 <!-- 3. FEATURES GRID -->
-<div class="py-16 bg-white overflow-hidden lg:py-24">
+<div class="py-16 bg-sky-50 overflow-hidden lg:py-24">
     <div class="relative max-w-xl mx-auto px-4 sm:px-6 lg:px-8 lg:max-w-7xl">
         <div class="relative">
-            <h2 class="text-center text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+            <h2 class="text-center text-3xl leading-8 font-extrabold tracking-tight text-green-900 sm:text-4xl">
                 A Unified Platform for Sustainability
             </h2>
         </div>
@@ -80,7 +103,7 @@
                 </p>
             </div>
             <div class="mt-10 -mx-4 relative lg:mt-0" aria-hidden="true">
-                <img class="relative mx-auto rounded-lg shadow-lg" width="490" src="{{ asset('images/feature-analytics.png') }}" alt="Carbon Analytics Interface">
+                 <img class="relative mx-auto rounded-lg shadow-lg" width="490" src="{{ asset('images/feature-analytics.png') }}" alt="Carbon Analytics Interface">
             </div>
         </div>
 
@@ -95,16 +118,6 @@
                     </p>
                 </div>
                 <div class="mt-10 -mx-4 relative lg:mt-0 lg:col-start-1">
-                     <!-- Using Hero image as placeholder for Inventory if needed, or specific icon. Re-using analytics style or code block? -->
-                     <!-- User asked for 3 specific images. Let's use the 3rd one for Lifecycle/Management? Or Inventory? -->
-                     <!-- Feature 2 was Inventory. I haven't generated a specific Inventory image, but I generated "Restoration Comparison". -->
-                     <!-- Let's use the Restoration Comparison for "Project Management" or "Restoration Lifecycle". -->
-                     <!-- Actually, "Sustainable Inventory" text is Feature 2. I have 3 images: Hero, Analytics, Restoration. -->
-                     <!-- I will use Restoration image for Feature 3 (Project Management/Restoration Lifecycle). -->
-                     <!-- For Feature 2 (Inventory), I'll use a Code/List visual or just text if image is missing. -->
-                     <!-- Wait, user mapped Feature 3 to "Restoration Lifecycle". The image is "Restoration Comparison". Perfect. -->
-                     <!-- What about Feature 2? I don't have an image for Feature 2. I'll use a placeholder or stylized div. -->
-                     
                     <div class="bg-gray-100 rounded-lg p-6 h-64 flex items-center justify-center border-2 border-dashed border-gray-300">
                         <div class="text-center">
                              <div class="text-5xl mb-2">🧱</div>
@@ -125,7 +138,7 @@
                 </p>
             </div>
             <div class="mt-10 -mx-4 relative lg:mt-0" aria-hidden="true">
-                <img class="relative mx-auto rounded-lg shadow-lg" width="490" src="{{ asset('images/feature-restoration.png') }}" alt="Restoration Comparison">
+                 <img class="relative mx-auto rounded-lg shadow-lg" width="490" src="{{ asset('images/feature-restoration.png') }}" alt="Restoration Comparison">
             </div>
         </div>
     </div>
@@ -181,8 +194,35 @@
     </div>
 </div>
 
+<!-- Task 4: TESTIMONIALS -->
+<div class="bg-gradient-to-t from-green-100 to-white py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-extrabold text-center text-green-900 sm:text-4xl mb-12">
+            Trusted by Industry Leaders
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Review 1 -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <p class="text-gray-500 italic mb-4">"EcoRestore helped us win 3 major government contracts by proving our sustainability impact."</p>
+                <div class="flex items-center">
+                    <div class="font-bold text-gray-900">Sarah J.</div>
+                    <div class="text-gray-500 text-sm ml-2">- Construction Manager</div>
+                </div>
+            </div>
+            <!-- Review 2 -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <p class="text-gray-500 italic mb-4">"Finally, a way to track material lifecycles that doesn't require a PhD in environmental science."</p>
+                <div class="flex items-center">
+                    <div class="font-bold text-gray-900">Mark T.</div>
+                    <div class="text-gray-500 text-sm ml-2">- Lead Architect</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 5. FOOTER -->
-<div class="bg-green-700">
+<div class="bg-green-800">
     <div class="max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8">
         <h2 class="text-3xl font-extrabold text-white sm:text-4xl">
             <span class="block">Ready to build sustainably?</span>
