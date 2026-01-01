@@ -56,7 +56,7 @@ return [
         'version' => '0.3.4',
     ],
     'vue' => [
-        'path' => './assets/vendor/vue/dist/vue.esm-bundler.js',
+        'version' => '3.5.26',
     ],
     'chart.js/auto' => [
         'version' => '4.5.1',
