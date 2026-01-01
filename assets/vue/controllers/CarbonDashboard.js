@@ -536,9 +536,17 @@ export default {
                     isSearching.value = false;
                     return;
                 }
-                const res = await fetch(`/api/material-lookup?q=${encodeURIComponent(searchQuery.value)}`);
-                searchResults.value = await res.json();
-                isSearching.value = false;
+                try {
+                    const res = await fetch(`/api/material-lookup?q=${encodeURIComponent(searchQuery.value)}`);
+                    if (!res.ok) throw new Error(`Server Error: ${res.status}`);
+                    searchResults.value = await res.json();
+                } catch (e) {
+                    console.error("Search failed", e);
+                    alert("Material Search Failed: " + e.message);
+                    searchResults.value = [];
+                } finally {
+                    isSearching.value = false;
+                }
             }, 300);
         };
 
