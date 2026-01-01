@@ -16,7 +16,7 @@ use Symfony\Component\Security\Http\Authenticator\FormLoginAuthenticator;
 class RegistrationController extends AbstractController
 {
     #[Route('/register', name: 'app_register')]
-    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
+    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager, UserAuthenticatorInterface $userAuthenticator, FormLoginAuthenticator $formLoginAuthenticator): Response
     {
         $user = new User();
         $form = $this->createForm(RegistrationFormType::class, $user);
@@ -34,13 +34,19 @@ class RegistrationController extends AbstractController
             $entityManager->persist($user);
             $entityManager->flush();
 
-            // do anything else you need here, like send an email
+            // Add a welcome flash message
+            $this->addFlash('success', 'Welcome! Your account has been created successfully.');
 
-            return $this->redirectToRoute('app_login');
+            // Authenticate the user immediately
+            return $userAuthenticator->authenticateUser(
+                $user,
+                $formLoginAuthenticator,
+                $request
+            );
         }
 
         return $this->render('registration/register.html.twig', [
             'registrationForm' => $form->createView(),
-        ]);
+        ], new Response(null, $form->isSubmitted() && !$form->isValid() ? 422 : 200));
     }
 }
