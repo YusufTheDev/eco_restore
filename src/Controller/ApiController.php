@@ -171,11 +171,77 @@ class ApiController extends AbstractController
         if (!$user)
             return $this->json(['error' => 'Unauthorized'], 401);
 
-        // 1. Handle POST: Save new Claim with LinkItems
-        if ($request->isMethod('POST')) {
-            $data = $request->toArray();
+        try {
+            // 1. Handle POST: Save new Claim with LinkItems
+            if ($request->isMethod('POST')) {
+                $data = $request->toArray();
 
-            $projectId = $data['projectId'] ?? null;
+                $projectId = $data['projectId'] ?? null;
+                if (!$projectId)
+                    return $this->json(['error' => 'Project ID required'], 400);
+
+                $project = $projectRepo->find($projectId);
+                if (!$project || $project->getUser() !== $user) {
+                    return $this->json(['error' => 'Invalid Project Access'], 403);
+                }
+
+                $claim = new Claim();
+                $claim->setClaimNumber('CLM-' . uniqid());
+                $claim->setPolicyHolder($user->getEmail()); // Use User email
+                $claim->setProject($project);
+
+                $totalScore = 0.0;
+
+                foreach ($data['items'] as $item) {
+                    $material = $materialRepo->find($item['materialId']);
+                    if (!$material)
+                        continue;
+
+                    $qty = (float) $item['quantity'];
+
+                    $claimItem = new ClaimItem();
+                    $claimItem->setMaterial($material);
+                    $claimItem->setQuantityUsed($qty);
+
+                    // Transport
+                    $dist = (float) ($item['transportDistance'] ?? 0);
+                    $method = $item['transportMethod'] ?? 'truck';
+
+                    $claimItem->setTransportDistance($dist);
+                    $claimItem->setTransportMethod($method);
+
+                    // Link both ways
+                    $claim->addClaimItem($claimItem);
+
+                    // 1. Material Impact
+                    $materialImpact = $qty * $material->getCarbonFootprintPerUnit();
+
+                    // 2. Transport Impact
+                    $density = $material->getDensity() ?? 0;
+                    $weightTonnes = ($qty * $density) / 1000;
+
+                    $transportFactor = match ($method) {
+                        'rail' => 0.0119,
+                        'ship' => 0.0082,
+                        default => 0.0739
+                    };
+
+                    $transportImpact = $weightTonnes * $dist * $transportFactor;
+
+                    $totalScore += ($materialImpact + $transportImpact);
+
+                    $entityManager->persist($claimItem);
+                }
+
+                $claim->setTotalCarbonScore($totalScore);
+                $entityManager->persist($claim);
+                $entityManager->flush();
+
+                return $this->json(['status' => 'saved', 'claimId' => $claim->getId()], 201);
+            }
+
+            // 2. Handle GET: Return grouped data for Chart & Total from Claims
+            $projectId = $request->query->get('projectId');
             if (!$projectId)
                 return $this->json(['error' => 'Project ID required'], 400);
 
@@ -184,143 +250,64 @@ class ApiController extends AbstractController
                 return $this->json(['error' => 'Invalid Project Access'], 403);
             }
 
-            $claim = new Claim();
-            $claim->setClaimNumber('CLM-' . uniqid());
-            $claim->setPolicyHolder($user->getEmail()); // Use User email
-            $claim->setProject($project);
+            $claims = $claimRepo->findBy(['project' => $project]);
+            $grandTotal = 0.0;
+            $byCategory = [];
+            $history = [];
 
-            $totalScore = 0.0;
+            foreach ($claims as $claim) {
+                $grandTotal += $claim->getTotalCarbonScore();
 
-            foreach ($data['items'] as $item) {
-                $material = $materialRepo->find($item['materialId']);
-                if (!$material)
-                    continue;
+                foreach ($claim->getClaimItems() as $ci) {
+                    $mat = $ci->getMaterial();
+                    if ($mat) {
+                        $cat = $mat->getCategory();
+                        $qty = $ci->getQuantityUsed();
+                        $matImpact = $qty * $mat->getCarbonFootprintPerUnit();
 
-                $qty = (float) $item['quantity'];
-
-                $claimItem = new ClaimItem();
-                $claimItem->setMaterial($material);
-                $claimItem->setQuantityUsed($qty);
-
-                // Transport (RICS Logic)
-                $dist = (float) ($item['transportDistance'] ?? 0);
-                $method = $item['transportMethod'] ?? 'truck';
-
-                $claimItem->setTransportDistance($dist);
-                $claimItem->setTransportMethod($method);
-
-                // Link both ways
-                $claim->addClaimItem($claimItem);
-
-                // 1. Material Impact
-                $materialImpact = $qty * $material->getCarbonFootprintPerUnit();
-
-                // 2. Transport Impact
-                // Weight (tonnes) = (Qty * Density) / 1000. Default density 0 if missing.
-                $density = $material->getDensity() ?? 0;
-                $weightTonnes = ($qty * $density) / 1000;
-
-                // Factors (tkm)
-                $transportFactor = match ($method) {
-                    'rail' => 0.0119,
-                    'ship' => 0.0082,
-                    default => 0.0739 // Truck (default)
-                };
-
-                $transportImpact = $weightTonnes * $dist * $transportFactor;
-
-                $totalScore += ($materialImpact + $transportImpact);
-
-                $entityManager->persist($claimItem);
-            }
-
-            $claim->setTotalCarbonScore($totalScore);
-            $entityManager->persist($claim);
-            $entityManager->flush();
-
-            return $this->json(['status' => 'saved', 'claimId' => $claim->getId()], 201);
-        }
-
-        // 2. Handle GET: Return grouped data for Chart & Total from Claims
-        $projectId = $request->query->get('projectId');
-        if (!$projectId)
-            return $this->json(['error' => 'Project ID required'], 400);
-
-        $project = $projectRepo->find($projectId);
-        if (!$project || $project->getUser() !== $user) {
-            return $this->json(['error' => 'Invalid Project Access'], 403);
-        }
-
-        $claims = $claimRepo->findBy(['project' => $project]);
-        $grandTotal = 0.0;
-        $byCategory = [];
-
-        $history = []; // Full list of items for Report
-
-        foreach ($claims as $claim) {
-            $grandTotal += $claim->getTotalCarbonScore();
-
-            // To get category breakdown, we iterate items
-            foreach ($claim->getClaimItems() as $ci) {
-                $mat = $ci->getMaterial();
-                if ($mat) {
-                    $cat = $mat->getCategory();
-                    $qty = $ci->getQuantityUsed();
-
-                    // Material Impact
-                    $matImpact = $qty * $mat->getCarbonFootprintPerUnit();
-
-                    if (!isset($byCategory[$cat])) {
-                        $byCategory[$cat] = 0.0;
-                    }
-                    $byCategory[$cat] += $matImpact;
-
-                    // Transport Impact (Re-calculate for breakdown)
-                    $transImpact = 0.0;
-                    $dist = $ci->getTransportDistance() ?? 0;
-                    if ($dist > 0) {
-                        $density = $mat->getDensity() ?: 1000;
-                        $weightTonnes = ($qty * $density) / 1000;
-                        $method = $ci->getTransportMethod() ?? 'truck';
-
-                        $factor = match ($method) {
-                            'rail' => 0.0119,
-                            'ship' => 0.0082,
-                            default => 0.0739
-                        };
-
-                        $currentTransImpact = ($weightTonnes * $dist * $factor);
-
-                        if ($currentTransImpact > 0) {
-                            if (!isset($byCategory['Transport'])) {
-                                $byCategory['Transport'] = 0.0;
-                            }
-                            $byCategory['Transport'] += $currentTransImpact;
+                        if (!isset($byCategory[$cat])) {
+                            $byCategory[$cat] = 0.0;
                         }
-                        $transImpact = $currentTransImpact; // Assign to transImpact for history and total impact
-                    }
+                        $byCategory[$cat] += $matImpact;
 
-                    // Add to history
-                    $history[] = [
-                        'id' => $ci->getId(), // ClaimItem ID
-                        'claimId' => $claim->getId(),
-                        'name' => $mat->getName(),
-                        'quantity' => $qty,
-                        'unit' => $mat->getUnit(),
-                        'totalImpact' => $matImpact + $transImpact,
-                        'transportDistance' => $dist,
-                        'transportMethod' => $ci->getTransportMethod() ?? 'truck',
-                        'date' => $claim->getClaimNumber() // Show Claim Number or Date
-                    ];
+                        $transImpact = 0.0;
+                        $dist = $ci->getTransportDistance() ?? 0;
+                        if ($dist > 0) {
+                            $density = $mat->getDensity() ?: 1000;
+                            $weightTonnes = ($qty * $density) / 1000;
+                            $method = $ci->getTransportMethod() ?? 'truck';
+                            $factor = match ($method) { 'rail' => 0.0119, 'ship' => 0.0082, default => 0.0739};
+
+                            $currentTransImpact = ($weightTonnes * $dist * $factor);
+                            if ($currentTransImpact > 0) {
+                                if (!isset($byCategory['Transport']))
+                                    $byCategory['Transport'] = 0.0;
+                                $byCategory['Transport'] += $currentTransImpact;
+                            }
+                            $transImpact = $currentTransImpact;
+                        }
+
+                        $history[] = [
+                            'id' => $ci->getId(),
+                            'name' => $mat->getName(),
+                            'quantity' => $qty,
+                            'unit' => $mat->getUnit(),
+                            'totalImpact' => $matImpact + $transImpact,
+                            'transportDistance' => $dist,
+                            'date' => $claim->getClaimNumber()
+                        ];
+                    }
                 }
             }
-        }
 
-        return $this->json([
-            'total_score' => round($grandTotal, 2),
-            'breakdown' => $byCategory,
-            'history' => $history
-        ]);
+            return $this->json([
+                'total_score' => round($grandTotal, 2),
+                'breakdown' => $byCategory,
+                'history' => $history
+            ]);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+        }
     }
 
     #[Route('/api/claim-items/{id}', name: 'api_claim_items_delete', methods: ['DELETE'])]
