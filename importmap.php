@@ -56,7 +56,8 @@ return [
         'version' => '0.3.4',
     ],
     'vue' => [
-        'path' => 'https://ga.jspm.io/npm:vue@3.5.26/dist/vue.esm-browser.js',
+        'version' => '3.5.26',
+        'package_specifier' => 'vue/dist/vue.esm-browser.js',
     ],
     'chart.js/auto' => [
         'version' => '4.5.1',
