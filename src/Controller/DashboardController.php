@@ -11,8 +11,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_USER')]
 class DashboardController extends AbstractController
 {
-    #[Route('/projects', name: 'app_home')]
-    #[Route('/', name: 'app_root')]
+    #[Route('/projects', name: 'app_project_index')]
     public function projects(): Response
     {
         return $this->render('projects/index.html.twig');
