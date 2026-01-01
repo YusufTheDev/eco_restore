@@ -5,6 +5,10 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    # Trust Render's load balancer (and other private networks) to handle SSL
+    trusted_proxies: '127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto']
+
     #esi: true
     #fragments: true
 
