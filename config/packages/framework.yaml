@@ -6,8 +6,9 @@ framework:
     session: true
 
     # Trust Render's load balancer (and other private networks) to handle SSL
-    trusted_proxies: '127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
-    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto']
+    # '127.0.0.1' and '0.0.0.0/0' (Trust ALL proxies - safe on Render because traffic is filtered)
+    trusted_proxies: '127.0.0.1,0.0.0.0/0'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-host']
 
     #esi: true
     #fragments: true
