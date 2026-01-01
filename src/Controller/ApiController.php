@@ -21,34 +21,39 @@ class ApiController extends AbstractController
     #[Route('/api/material-lookup', name: 'api_material_lookup', methods: ['GET'])]
     public function getMaterials(Request $request, MaterialRepository $repo): JsonResponse
     {
-        $q = $request->query->get('q', '');
+        try {
+            $q = $request->query->get('q', '');
 
-        $queryBuilder = $repo->createQueryBuilder('m')
-            ->orderBy('m.name', 'ASC')
-            ->setMaxResults(5);
+            $queryBuilder = $repo->createQueryBuilder('m')
+                ->orderBy('m.name', 'ASC')
+                ->setMaxResults(5);
 
-        if ($q) {
-            $queryBuilder->andWhere('m.name LIKE :search')
-                ->setParameter('search', '%' . $q . '%');
+            if ($q) {
+                // Case-insensitive search
+                $queryBuilder->andWhere('LOWER(m.name) LIKE LOWER(:search)')
+                    ->setParameter('search', '%' . $q . '%');
+            }
+
+            $materials = $queryBuilder->getQuery()->getResult();
+            $data = [];
+
+            foreach ($materials as $m) {
+                $data[] = [
+                    'id' => $m->getId(),
+                    'name' => $m->getName(),
+                    'category' => $m->getCategory(),
+                    'unit' => $m->getUnit() ?? 'unit',
+                    'factor' => $m->getCarbonFootprintPerUnit(),
+                    'density' => $m->getDensity(),
+                    'source_date' => $m->getSourceDate()?->format('Y-m-d'),
+                    'industry_average' => $m->getIndustryAverageFactor(),
+                ];
+            }
+
+            return $this->json($data);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
         }
-
-        $materials = $queryBuilder->getQuery()->getResult();
-        $data = [];
-
-        foreach ($materials as $m) {
-            $data[] = [
-                'id' => $m->getId(),
-                'name' => $m->getName(),
-                'category' => $m->getCategory(),
-                'unit' => $m->getUnit() ?? 'unit',
-                'factor' => $m->getCarbonFootprintPerUnit(),
-                'density' => $m->getDensity(),
-                'source_date' => $m->getSourceDate()?->format('Y-m-d'),
-                'industry_average' => $m->getIndustryAverageFactor(),
-            ];
-        }
-
-        return $this->json($data);
     }
 
     #[Route('/api/recommend/{id}', name: 'api_recommend', methods: ['GET'])]
