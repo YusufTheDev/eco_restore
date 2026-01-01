@@ -16,6 +16,13 @@ final class Version20251231000004 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
+        // 0. Ensure Schema is correct (Self-Healing)
+        // In case Version...03 was skipped or failed, we add the columns here safely.
+        $this->addSql('ALTER TABLE material ADD COLUMN IF NOT EXISTS unit VARCHAR(50) NOT NULL DEFAULT \'kg\'');
+        $this->addSql('ALTER TABLE material ADD COLUMN IF NOT EXISTS density DOUBLE PRECISION DEFAULT NULL');
+        $this->addSql('ALTER TABLE material ADD COLUMN IF NOT EXISTS source_date TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL');
+        $this->addSql('ALTER TABLE material ADD COLUMN IF NOT EXISTS industry_average_factor DOUBLE PRECISION DEFAULT NULL');
+
         // Clear previous seed if exists to avoid duplicates
         $this->addSql('DELETE FROM material');
 
@@ -156,13 +163,62 @@ final class Version20251231000004 extends AbstractMigration
             ['Paint (Water Based)', 1.800, 'Finishes', 'kg', 1300],
             ['Paint (Natural/Clay)', 0.500, 'Finishes', 'kg', 1400],
 
-            // --- INFRASTRUCTURE (Category: Infrastructure) ---
+            // --- INFRASTRUCTURE / LANDSCAPING (Category: Infrastructure) ---
             ['Asphalt (Hot Mix)', 0.050, 'Infrastructure', 'kg', 2300],
             ['Asphalt (Warm Mix)', 0.040, 'Infrastructure', 'kg', 2300],
             ['Bitumen', 0.450, 'Infrastructure', 'kg', 1050],
-            ['Gravel / Crushed Rock', 0.008, 'Infrastructure', 'kg', 1600],
-            ['Sand', 0.005, 'Infrastructure', 'kg', 1600],
+            ['Gravel', 0.008, 'Infrastructure', 'kg', 1600],
+            ['Crushed Rock / Aggregate', 0.009, 'Infrastructure', 'kg', 1600],
+            ['Sand (Pit)', 0.005, 'Infrastructure', 'kg', 1600],
             ['Soil (Topsoil)', 0.002, 'Infrastructure', 'kg', 1300],
+            ['Subsoil', 0.001, 'Infrastructure', 'kg', 1800],
+            ['Clay', 0.003, 'Infrastructure', 'kg', 1700],
+            ['Precast Concrete Kerb', 0.200, 'Infrastructure', 'kg', 2400],
+            ['Paving Slabs (Concrete)', 0.220, 'Infrastructure', 'kg', 2300],
+            ['Paving Slabs (Natural Stone)', 0.080, 'Infrastructure', 'kg', 2600],
+            ['Turf (Natural)', 0.050, 'Infrastructure', 'm2', 20], // per m2? Density low
+
+            // --- ENERGY & FUELS (Category: Energy) ---
+            // Density used for transport calc (if applicable).
+            // Electricity density 0 = no transport emission calculated by app (correct).
+            ['Electricity (Grid UK Avg)', 0.207, 'Energy', 'kWh', 0],
+            ['Electricity (Solar onsite)', 0.000, 'Energy', 'kWh', 0], // Recommendation
+            ['Diesel (Construction)', 3.100, 'Energy', 'liters', 0.85], // kgCO2e per liter (incl well-to-tank)
+            ['Petrol / Gasoline', 2.800, 'Energy', 'liters', 0.75],
+            ['Natural Gas', 0.203, 'Energy', 'kWh', 0],
+            ['HVO (Hydrotreated Vegetable Oil)', 0.195, 'Energy', 'liters', 0.88], // Low carbon fuel
+
+            // --- WASTE DISPOSAL (Category: Waste) ---
+            // End of life impacts
+            ['Waste: Mixed Construction (Landfill)', 0.100, 'Waste', 'kg', 1000],
+            ['Waste: Mixed Construction (Recycled)', 0.020, 'Waste', 'kg', 1000],
+            ['Waste: Timber (Landfill)', 0.800, 'Waste', 'kg', 600], // Methane
+            ['Waste: Timber (Incineration)', 0.400, 'Waste', 'kg', 600],
+            ['Waste: Timber (Recycled)', 0.010, 'Waste', 'kg', 600],
+            ['Waste: Concrete (Landfill)', 0.010, 'Waste', 'kg', 2400],
+            ['Waste: Concrete (Recycled)', 0.005, 'Waste', 'kg', 2400],
+
+            // --- MORE METALS (Category: Metal) ---
+            ['Iron (Cast)', 1.500, 'Metal', 'kg', 7200],
+            ['Iron (Ductile)', 1.800, 'Metal', 'kg', 7100],
+            ['Brass (Virgin)', 5.000, 'Metal', 'kg', 8500],
+            ['Brass (Recycled)', 0.500, 'Metal', 'kg', 8500],
+            ['Bronze', 6.500, 'Metal', 'kg', 8800],
+
+            // --- MORE PLASTICS/RUBBER (Category: Plastic) ---
+            ['Rubber (EPDM Membrane)', 3.500, 'Plastic', 'kg', 1500],
+            ['Rubber (Synthetic/SBR)', 2.900, 'Plastic', 'kg', 1200],
+            ['Silicone', 5.000, 'Plastic', 'kg', 1100],
+            ['PTFE (Teflon)', 8.000, 'Plastic', 'kg', 2200],
+            ['PMMA (Acrylic/Perspex)', 4.500, 'Plastic', 'kg', 1180],
+            ['PET (Polyester)', 3.000, 'Plastic', 'kg', 1380],
+            ['Nylon (Polyamide 6)', 8.500, 'Plastic', 'kg', 1150],
+
+            // --- MORE INSULATION ---
+            ['Vacuum Insulation Panels', 10.000, 'Insulation', 'kg', 200],
+            ['Aerogel', 4.000, 'Insulation', 'kg', 150],
+            ['Perlite (Loose)', 0.900, 'Insulation', 'kg', 150],
+            ['Vermiculite', 1.000, 'Insulation', 'kg', 100]
         ];
 
         foreach ($materials as $m) {

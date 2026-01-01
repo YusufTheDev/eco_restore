@@ -454,8 +454,24 @@ export default {
 
         const transportImpact = computed(() => {
             if (!newItem.value.addTransport || !newItem.value.quantity) return 0;
-            const safeDensity = newItem.value.density && newItem.value.density > 0 ? newItem.value.density : 1000;
-            const weightTonnes = (newItem.value.quantity * safeDensity) / 1000;
+
+            let weightTonnes = 0;
+            const unit = newItem.value.previewUnit; // e.g., 'kg', 'liters', 'm3'
+            const qty = newItem.value.quantity;
+            const density = newItem.value.density; // kg/unit
+
+            if (unit === 'kg') {
+                weightTonnes = qty / 1000;
+            } else if (unit === 'kWh') {
+                return 0; // No transport emissions for grid energy
+            } else if (density && density > 0) {
+                // For volume/liquid units (liters, m3, m2, etc.), use density to convert to kg
+                weightTonnes = (qty * density) / 1000;
+            } else {
+                // Fallback: Assume input is kg if unsure
+                weightTonnes = qty / 1000;
+            }
+
             const dist = newItem.value.transportDistance;
             const factors = { truck: 0.0739, rail: 0.0119, ship: 0.0082 };
             const factor = factors[newItem.value.transportMethod] || 0.0739;
