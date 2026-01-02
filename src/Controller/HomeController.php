@@ -11,11 +11,7 @@ class HomeController extends AbstractController
     #[Route('/', name: 'app_home')]
     public function index(): Response
     {
-        // Task 1: If user is logged in, redirect to dashboard
-        if ($this->getUser()) {
-            return $this->redirectToRoute('app_project_index');
-        }
-
+        // Render landing page for everyone (buttons will adapt via Twig)
         return $this->render('home/index.html.twig');
     }
 }
