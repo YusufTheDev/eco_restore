@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="{{ asset('images/logo.png') }}">
+        <link rel="icon" href="{{ asset('images/logo.png') }}?v=2">
         {% block stylesheets %}
             <script src="https://cdn.tailwindcss.com"></script>
         {% endblock %}
@@ -14,26 +14,28 @@
         {% endblock %}
     </head>
     <body class="bg-gradient-to-br from-green-50 to-sky-50 text-gray-900 min-h-screen">
-        {% if app.user %}
-            <nav class="bg-white shadow">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between h-16">
-                        <div class="flex">
-                            <div class="flex-shrink-0 flex items-center">
-                                <a href="{{ path('app_home') }}" class="flex items-center gap-2">
-                                    <img src="{{ asset('images/logo.png') }}" alt="EcoRestore Logo" class="h-8 w-auto">
-                                    <span class="font-bold text-xl text-green-600">EcoRestore</span>
-                                </a>
+        {% block navbar %}
+            {% if app.user %}
+                <nav class="bg-white shadow">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="flex justify-between h-16">
+                            <div class="flex">
+                                <div class="flex-shrink-0 flex items-center">
+                                    <a href="{{ path('app_home') }}" class="flex items-center gap-2">
+                                        <img src="{{ asset('images/logo.png') }}" alt="EcoRestore Logo" class="h-8 w-auto">
+                                        <span class="font-bold text-xl text-green-600">EcoRestore</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-gray-500 mr-4 text-sm">{{ app.user.email }}</span>
+                                <a href="{{ path('app_logout') }}" class="text-gray-500 hover:text-gray-700 font-medium text-sm">Log out</a>
                             </div>
                         </div>
-                        <div class="flex items-center">
-                            <span class="text-gray-500 mr-4 text-sm">{{ app.user.email }}</span>
-                            <a href="{{ path('app_logout') }}" class="text-gray-500 hover:text-gray-700 font-medium text-sm">Log out</a>
-                        </div>
                     </div>
-                </div>
-            </nav>
-        {% endif %}
+                </nav>
+            {% endif %}
+        {% endblock %}
         
         {% block body %}{% endblock %}
     </body>

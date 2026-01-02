@@ -238,9 +238,17 @@
             <span class="block">Ready to build sustainably?</span>
             <span class="block">Join EcoRestore Today.</span>
         </h2>
-        <a href="{{ path('app_register') }}" class="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-green-600 bg-white hover:bg-green-50 sm:w-auto">
-            Get Started for Free
-        </a>
+        <div class="mt-8 flex justify-center">
+            {% if app.user %}
+                <a href="{{ path('app_project_index') }}" class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-green-600 bg-white hover:bg-green-50 sm:w-auto">
+                    Go to Dashboard
+                </a>
+            {% else %}
+                <a href="{{ path('app_register') }}" class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-green-600 bg-white hover:bg-green-50 sm:w-auto">
+                    Get Started for Free
+                </a>
+            {% endif %}
+        </div>
         <p class="mt-8 text-sm text-green-100">
             © 2025 EcoRestore. All rights reserved.
         </p>
